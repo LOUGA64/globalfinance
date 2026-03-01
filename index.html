@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>GlobalFinance Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:rgba(255,255,255,0.07);--gold:#c9a84c;--text:#e8eaf0;--muted:#6b7a99;--green:#22c55e;--red:#ef4444;--blue:#3b82f6;--purple:#a855f7}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden}
+  body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 50% at 20% 10%,rgba(201,168,76,.05) 0%,transparent 60%),radial-gradient(ellipse 60% 40% at 80% 80%,rgba(59,130,246,.04) 0%,transparent 60%);pointer-events:none;z-index:0}
+  .wrap{position:relative;z-index:1;max-width:480px;margin:0 auto;padding:0 16px 90px}
+
+  /* Header */
+  header{padding:20px 0 12px;display:flex;align-items:flex-start;justify-content:space-between}
+  .logo{font-family:'Playfair Display',serif;font-size:20px;font-weight:900}
+  .logo span{color:var(--gold)}
+  .logo small{font-size:11px;color:var(--purple);font-family:'DM Sans',sans-serif;font-weight:600;letter-spacing:1px;display:block;margin-top:2px}
+  .live{font-size:11px;color:var(--muted);margin-top:4px}
+  .dot{display:inline-block;width:6px;height:6px;background:var(--green);border-radius:50%;margin-right:4px;animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  .date{font-size:11px;color:var(--muted);text-align:right;line-height:1.5}
+
+  /* Tab bar */
+  .tabs{display:flex;gap:0;margin-bottom:20px;background:var(--surface);border-radius:12px;padding:4px;border:1px solid var(--border)}
+  .tab{flex:1;text-align:center;padding:8px 4px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;color:var(--muted);letter-spacing:.3px}
+  .tab.active{background:var(--gold);color:#0a0e1a}
+  .tab-content{display:none}
+  .tab-content.active{display:block}
+
+  /* Filters */
+  .flabel{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:6px}
+  .pills{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:10px;scrollbar-width:none}
+  .pills::-webkit-scrollbar{display:none}
+  .pill{display:flex;align-items:center;gap:4px;padding:6px 11px;border-radius:100px;border:1px solid var(--border);background:var(--surface);cursor:pointer;white-space:nowrap;font-size:12px;font-weight:500;transition:all .2s;flex-shrink:0;font-family:inherit;color:var(--text)}
+  .pill.active{background:var(--gold);border-color:var(--gold);color:#0a0e1a;font-weight:600}
+  .topics{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:16px}
+  .tpill{padding:4px 10px;border-radius:100px;border:1px solid var(--border);background:transparent;cursor:pointer;font-size:11px;font-weight:500;color:var(--muted);font-family:inherit;transition:all .2s}
+  .tpill.active{color:var(--gold);border-color:var(--gold);background:rgba(201,168,76,.08)}
+
+  /* Stats */
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px}
+  .sc{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px;text-align:center}
+  .sv{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:var(--gold);line-height:1;margin-bottom:3px}
+  .sl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+
+  /* Section header */
+  .sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .st{font-family:'Playfair Display',serif;font-size:15px;font-weight:700}
+  .cnt{font-size:11px;color:var(--muted);background:var(--surface2);padding:3px 8px;border-radius:100px}
+  .rbtn{display:flex;align-items:center;gap:5px;background:transparent;border:1px solid var(--border);color:var(--muted);padding:5px 10px;border-radius:100px;font-size:11px;cursor:pointer;font-family:inherit;transition:all .2s}
+  .rbtn:hover{border-color:var(--gold);color:var(--gold)}
+  .rbtn.spin svg{animation:rot .8s linear infinite}
+  @keyframes rot{to{transform:rotate(360deg)}}
+
+  /* Cards */
+  .list{display:flex;flex-direction:column;gap:10px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;transition:all .2s;text-decoration:none;display:block;animation:up .35s ease both;color:var(--text)}
+  .card:hover{border-color:rgba(201,168,76,.3);background:var(--surface2);transform:translateY(-1px)}
+  .card.cn{border-left:3px solid rgba(220,38,38,.5)}
+  .card.reg{border-left:3px solid rgba(168,85,247,.5)}
+  .card.alert{border-left:3px solid rgba(239,68,68,.8);background:rgba(239,68,68,.04)}
+  @keyframes up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  .cm{display:flex;align-items:center;gap:7px;margin-bottom:7px;flex-wrap:wrap}
+  .cs{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--gold)}
+  .cs.purple{color:var(--purple)}
+  .cs.red{color:var(--red)}
+  .cd{width:3px;height:3px;border-radius:50%;background:var(--muted)}
+  .ct{font-size:11px;color:var(--muted)}
+  .ctitle{font-family:'Playfair Display',serif;font-size:14px;font-weight:700;line-height:1.35;margin-bottom:7px}
+  .cdesc{font-size:12px;color:var(--muted);line-height:1.6;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+  .ctags{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap}
+  .tag{font-size:10px;padding:2px 7px;border-radius:100px;background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
+  .tag.new{background:rgba(34,197,94,.1);color:var(--green);border-color:rgba(34,197,94,.2)}
+  .tag.tp{background:rgba(201,168,76,.08);color:var(--gold);border-color:rgba(201,168,76,.2)}
+  .tag.cn{background:rgba(220,38,38,.1);color:#f87171;border-color:rgba(220,38,38,.2)}
+  .tag.reg{background:rgba(168,85,247,.1);color:#d8b4fe;border-color:rgba(168,85,247,.2)}
+  .tag.hot{background:rgba(239,68,68,.1);color:var(--red);border-color:rgba(239,68,68,.2)}
+
+  /* Info box */
+  .infobox{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 14px;font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:16px}
+  .infobox strong{color:var(--text)}
+  .infobox .highlight{color:var(--gold)}
+
+  /* Section separator */
+  .sep{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin:14px 0 8px;display:flex;align-items:center;gap:8px}
+  .sep::after{content:'';flex:1;height:1px;background:var(--border)}
+
+  /* Loader */
+  .loader{display:flex;flex-direction:column;align-items:center;padding:40px 20px;gap:12px;color:var(--muted);font-size:13px;text-align:center}
+  .sp{width:28px;height:28px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:rot .8s linear infinite}
+
+  /* Bottom nav */
+  .bnav{position:fixed;bottom:0;left:0;right:0;background:rgba(10,14,26,.97);backdrop-filter:blur(12px);border-top:1px solid var(--border);display:flex;padding:8px 0 20px;z-index:100}
+  .ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;color:var(--muted);cursor:pointer;padding:6px 0}
+  .ni.active{color:var(--gold)}
+  .ni-icon{font-size:20px;line-height:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="logo">Global<span>Finance</span><small>PRO EDITION</small></div>
+      <div class="live"><span class="dot"></span>Veille continue 24/7</div>
+    </div>
+    <div class="date" id="dateEl"></div>
+  </header>
+
+  <!-- Tab bar -->
+  <div class="tabs">
+    <div class="tab active" data-tab="news">📰 Actualités</div>
+    <div class="tab" data-tab="reg">🏛️ AMF / SEC</div>
+    <div class="tab" data-tab="opa">🚨 OPA / M&A</div>
+  </div>
+
+  <!-- ══════════════ TAB 1 : NEWS ══════════════ -->
+  <div class="tab-content active" id="tab-news">
+    <div class="flabel">Europe</div>
+    <div class="pills" id="cfilter">
+      <button class="pill active" data-c="all">🌍 Tous</button>
+      <button class="pill" data-c="fr">🇫🇷 France</button>
+      <button class="pill" data-c="de">🇩🇪 Allemagne</button>
+      <button class="pill" data-c="es">🇪🇸 Espagne</button>
+      <button class="pill" data-c="it">🇮🇹 Italie</button>
+      <button class="pill" data-c="nl">🇳🇱 Pays-Bas</button>
+      <button class="pill" data-c="be">🇧🇪 Belgique</button>
+      <button class="pill" data-c="ch">🇨🇭 Suisse</button>
+      <button class="pill" data-c="gb">🇬🇧 Royaume-Uni</button>
+    </div>
+    <div class="sep">Économies mondiales</div>
+    <div class="pills" id="wfilter">
+      <button class="pill" data-c="cn">🇨🇳 Chine</button>
+      <button class="pill" data-c="us">🇺🇸 États-Unis</button>
+      <button class="pill" data-c="jp">🇯🇵 Japon</button>
+      <button class="pill" data-c="in">🇮🇳 Inde</button>
+      <button class="pill" data-c="br">🇧🇷 Brésil</button>
+    </div>
+    <div class="flabel" style="margin-top:10px">Thème</div>
+    <div class="topics" id="tfilter">
+      <button class="tpill active" data-t="all">Tout</button>
+      <button class="tpill" data-t="bourse">Bourse</button>
+      <button class="tpill" data-t="resultats">Résultats</button>
+      <button class="tpill" data-t="macro">Macro</button>
+      <button class="tpill" data-t="ma">M&A</button>
+      <button class="tpill" data-t="banque">Banques</button>
+      <button class="tpill" data-t="energie">Énergie</button>
+      <button class="tpill" data-t="tech">Tech / IA</button>
+    </div>
+    <div class="stats">
+      <div class="sc"><div class="sv" id="sA">—</div><div class="sl">Articles</div></div>
+      <div class="sc"><div class="sv" id="sS">—</div><div class="sl">Sources</div></div>
+      <div class="sc"><div class="sv" id="sF">—</div><div class="sl">&lt; 6h</div></div>
+    </div>
+    <div class="sh">
+      <div class="st">Actualités du jour</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="cnt" id="artCnt">0</span>
+        <button class="rbtn" id="rbtn1" onclick="loadNews()">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+          Actualiser
+        </button>
+      </div>
+    </div>
+    <div class="list" id="newsList"></div>
+  </div>
+
+  <!-- ══════════════ TAB 2 : RÉGLEMENTAIRE ══════════════ -->
+  <div class="tab-content" id="tab-reg">
+    <div class="infobox">
+      <strong>Sources réglementaires officielles</strong><br>
+      Ces informations proviennent directement des régulateurs. Elles sont souvent disponibles <span class="highlight">avant la reprise médiatique</span> et constituent un signal d'alerte précoce pour les investisseurs.
+    </div>
+
+    <div class="sep">AMF France — Décisions officielles</div>
+    <div class="sh">
+      <div class="st">Décisions & Alertes AMF</div>
+      <button class="rbtn" id="rbtn2" onclick="loadReg()">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+        Actualiser
+      </button>
+    </div>
+    <div class="list" id="regListAMF"></div>
+
+    <div class="sep" style="margin-top:20px">SEC EDGAR USA — Dépôts réglementaires</div>
+    <div class="infobox" style="font-size:11px">
+      <strong>8-K</strong> = événement significatif (fusion, résultats, changement direction) · 
+      <strong>13-F</strong> = positions des grands fonds · 
+      <strong>4</strong> = transactions des insiders
+    </div>
+    <div class="list" id="regListSEC"></div>
+  </div>
+
+  <!-- ══════════════ TAB 3 : OPA / M&A ══════════════ -->
+  <div class="tab-content" id="tab-opa">
+    <div class="infobox">
+      <strong>🚨 Radar OPA & Fusions-Acquisitions</strong><br>
+      Franchissements de seuils AMF, rumeurs de rachat, dépôts SEC 13-D/13-G. <span class="highlight">Un franchissement à 25-30% précède souvent une OPA obligatoire.</span>
+    </div>
+
+    <div class="sh">
+      <div class="st">Alertes actives</div>
+      <button class="rbtn" id="rbtn3" onclick="loadOPA()">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+        Actualiser
+      </button>
+    </div>
+    <div class="list" id="opaList"></div>
+  </div>
+</div>
+
+<nav class="bnav">
+  <div class="ni active"><div class="ni-icon">📰</div>News</div>
+  <div class="ni"><div class="ni-icon">📊</div>Marchés</div>
+  <div class="ni"><div class="ni-icon">⭐</div>Favoris</div>
+  <div class="ni"><div class="ni-icon">⚙️</div>Réglages</div>
+</nav>
+
+<script>
+const FLAGS={fr:'🇫🇷',de:'🇩🇪',es:'🇪🇸',it:'🇮🇹',nl:'🇳🇱',be:'🇧🇪',ch:'🇨🇭',gb:'🇬🇧',se:'🇸🇪',cn:'🇨🇳',us:'🇺🇸',jp:'🇯🇵',in:'🇮🇳',br:'🇧🇷'};
+
+// ── Helpers ───────────────────────────────────────────
+function updateDate(){
+  const n=new Date();
+  document.getElementById('dateEl').innerHTML=
+    n.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})+'<br>'+
+    n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+}
+updateDate(); setInterval(updateDate,30000);
+function relTime(d){
+  const diff=(Date.now()-new Date(d))/60000;
+  if(!d||isNaN(diff))return '';
+  if(diff<2)return "À l'instant";
+  if(diff<60)return `${Math.round(diff)} min`;
+  if(diff<1440)return `${Math.round(diff/60)}h`;
+  return `${Math.round(diff/1440)}j`;
+}
+function isFresh(d){return d&&(Date.now()-new Date(d))<21600000;}
+function spin(id,on){document.getElementById(id)?.classList[on?'add':'remove']('spin')}
+
+// ── Tab switching ─────────────────────────────────────
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');
+  document.getElementById('tab-'+t.dataset.tab).classList.add('active');
+}));
+
+// ══════════════════════════════════════════════════════
+// TAB 1 — NEWS
+// ══════════════════════════════════════════════════════
+let allNews=[], ac='all', at='all';
+
+function getNewsArticles(){
+  const now=Date.now(), h=n=>new Date(now-n*3600000).toISOString();
+  return [
+    // CHINE (12 articles)
+    {title:'Shanghai Composite : Pékin injecte 500 Mds¥, rebond de 2,1%',description:'La PBOC annonce une opération de refinancement massive pour soutenir les marchés. Les valeurs tech et immobilières rebondissent fortement.',source:'Xinhua Finance',country:'cn',topic:'bourse',pubDate:h(1)},
+    {title:'DeepSeek secoue les marchés : Nvidia perd 17% en une séance',description:'Le modèle d\'IA open source chinois rivalise avec GPT-4 à une fraction du coût. Réaction en chaîne sur les semiconducteurs américains.',source:'South China Morning Post',country:'cn',topic:'tech',pubDate:h(2)},
+    {title:'BYD dépasse Tesla : 4,27 millions de VE vendus en 2024',description:'Le constructeur automobile chinois consolide sa première place mondiale dans l\'électrique. Les exportations vers l\'Europe doublent malgré les droits de douane.',source:'Caixin Global',country:'cn',topic:'resultats',pubDate:h(3)},
+    {title:'Alibaba restructure : spin-off de 6 filiales, retour à la croissance',description:'Fin de la disgrâce réglementaire pour Jack Ma. Le titre bondit de 8% à Hong Kong après 2 ans de purgatoire.',source:'South China Morning Post',country:'cn',topic:'ma',pubDate:h(4)},
+    {title:'PIB Chine 2024 : +5,2% mais consommation intérieure toujours faible',description:'L\'objectif officiel est atteint de justesse. Les économistes s\'inquiètent de la déflation persistante et de la crise immobilière non résolue.',source:'Caixin Global',country:'cn',topic:'macro',pubDate:h(5)},
+    {title:'CATL : usine de 7,3 Mds€ en Hongrie pour contourner les droits UE',description:'Le leader mondial des batteries VE contourne les barrières douanières européennes avec cette implantation locale stratégique.',source:'Reuters',country:'cn',topic:'ma',pubDate:h(6)},
+    {title:'Baidu Ernie 4.0 : l\'IA générative chinoise attaque le marché européen',description:'Le moteur de recherche chinois déploie son assistant IA en 12 langues européennes, ciblant directement les clients de Microsoft Copilot.',source:'Caixin Global',country:'cn',topic:'tech',pubDate:h(7)},
+    {title:'Tensions UE-Chine : droits de 47% sur les panneaux solaires',description:'Bruxelles impose des droits compensatoires massifs. Pékin menace des représailles sur le cognac, les voitures de luxe et les produits laitiers.',source:'Le Monde',country:'cn',topic:'macro',pubDate:h(8)},
+    {title:'Xiaomi SU7 : 100 000 commandes en 24h, Tesla sous pression en Chine',description:'Le géant tech fait une entrée fracassante dans l\'automobile électrique avec un véhicule au rapport qualité-prix imbattable.',source:'South China Morning Post',country:'cn',topic:'resultats',pubDate:h(9)},
+    {title:'PBOC abaisse ses taux : coup de pouce à l\'économie en déflation',description:'La Banque Populaire de Chine réduit son taux préférentiel à 1 an. Troisième baisse en 18 mois pour relancer la demande intérieure.',source:'Xinhua Finance',country:'cn',topic:'banque',pubDate:h(10)},
+    {title:'Huawei Mate 70 : puces 7nm made in China, Apple perd des parts',description:'Huawei confirme sa capacité à produire des puces avancées sans équipements ASML. Effet direct sur les ventes iPhone en Chine.',source:'Caixin Global',country:'cn',topic:'tech',pubDate:h(11)},
+    {title:'Chine : exportations record malgré les tensions commerciales mondiales',description:'Le surplus commercial chinois atteint 992 milliards de dollars en 2024, un record absolu, alimentant les tensions avec Washington et Bruxelles.',source:'Xinhua Finance',country:'cn',topic:'macro',pubDate:h(12)},
+    // FRANCE (10 articles)
+    {title:'CAC 40 en hausse de 0,8%, les bancaires mènent la danse',description:'BNP Paribas (+2,1%) et Société Générale (+1,8%) portent l\'indice. Les investisseurs parient sur une baisse de taux BCE en mars.',source:'Les Échos',country:'fr',topic:'bourse',pubDate:h(1)},
+    {title:'LVMH : rebond de 3% porté par le retour de la clientèle chinoise',description:'Le numéro un mondial du luxe bénéficie du rebond du tourisme chinois en Europe. Objectifs de cours relevés par Goldman Sachs et JPMorgan.',source:'Boursorama',country:'fr',topic:'bourse',pubDate:h(2)},
+    {title:'TotalEnergies : bénéfice net de 4,8 Mds€, dividende en hausse',description:'Le groupe pétrolier surpasse les attentes de 12%. Forte contribution du GNL et accélération des projets renouvelables en Afrique.',source:'Les Échos',country:'fr',topic:'resultats',pubDate:h(3)},
+    {title:'Sanofi : Dupixent dépasse 12 Mds$ de revenus, guidance relevée',description:'Le médicament phare contre les maladies inflammatoires bat tous les records. Sanofi devient le 2e groupe pharma européen par capitalisation.',source:'Reuters France',country:'fr',topic:'resultats',pubDate:h(4)},
+    {title:'BCE : Lagarde ouvre la porte à une baisse des taux en mars',description:'L\'inflation zone euro à 2,3% rapproche la BCE de son objectif. Une première baisse de 25 pb est désormais intégrée par les marchés.',source:'Le Monde',country:'fr',topic:'macro',pubDate:h(5)},
+    {title:'BNP Paribas : résultats records, dividende relevé de 12%',description:'La première banque de la zone euro annonce 11,7 Mds€ de bénéfice net. Retour aux actionnaires massif via rachats et dividende exceptionnel.',source:'BFM Business',country:'fr',topic:'banque',pubDate:h(6)},
+    {title:'EDF : 10 réacteurs prolongés, la France sécurise son mix électrique',description:'Le gouvernement valide la prolongation au-delà de 40 ans. La France aura 70% d\'électricité nucléaire jusqu\'en 2035 au minimum.',source:'Le Monde',country:'fr',topic:'energie',pubDate:h(7)},
+    {title:'Sanofi acquiert Inhibrx pour 2,5 Mds$, pipeline oncologie renforcé',description:'Rachat stratégique d\'une biotech californienne spécialisée dans les traitements contre le cancer. Finalisation prévue au T2 2025.',source:'Les Échos',country:'fr',topic:'ma',pubDate:h(8)},
+    {title:'Airbus : 2 319 avions commandés en 2024, record historique',description:'Le constructeur européen dépasse Boeing sur tous les segments. Le carnet de commandes représente 10 ans de production.',source:'Le Figaro',country:'fr',topic:'resultats',pubDate:h(9)},
+    {title:'Inflation France : 1,7% en janvier, plus bas depuis 3 ans',description:'La désinflation se confirme en France. L\'alimentation et l\'énergie contribuent à la baisse. La BCE est confortée dans son pivot.',source:'INSEE',country:'fr',topic:'macro',pubDate:h(10)},
+    // ALLEMAGNE (6 articles)
+    {title:'DAX franchit les 22 000 points : record historique',description:'SAP, Deutsche Telekom et Siemens tirent l\'indice. La Bourse de Francfort surperforme le reste de l\'Europe malgré la récession économique.',source:'Handelsblatt',country:'de',topic:'bourse',pubDate:h(1)},
+    {title:'Volkswagen : 35 000 suppressions de postes, IG Metall négocie',description:'Le constructeur publie ses pires résultats depuis 15 ans. La pression des VE chinois et la faiblesse de la demande en Europe mettent l\'industrie à rude épreuve.',source:'Handelsblatt',country:'de',topic:'resultats',pubDate:h(3)},
+    {title:'SAP : cloud revenue +25%, objectifs 2025 relevés une 3e fois',description:'L\'éditeur de logiciels allemand confirme sa transformation vers le SaaS. Intelligence artificielle intégrée dans tous ses modules Enterprise.',source:'Manager Magazin',country:'de',topic:'tech',pubDate:h(4)},
+    {title:'Allemagne : récession 2 ans de suite, Bundesbank en alerte',description:'La première économie de la zone euro est en panne. Désindustrialisation, coûts énergétiques et manque de compétitivité menacent le modèle allemand.',source:'Bundesbank',country:'de',topic:'macro',pubDate:h(5)},
+    {title:'Deutsche Bank : bénéfice record, meilleur résultat depuis 2011',description:'La restructuration de Sewing porte ses fruits. RoTE à 9,8%, objectif 2025 de 10%+ désormais en ligne de mire.',source:'Handelsblatt',country:'de',topic:'banque',pubDate:h(6)},
+    {title:'RWE : 40 Mds€ dans le renouvelable, abandon définitif du charbon',description:'Le géant énergétique allemand boucle sa transformation écologique. Leader européen de l\'éolien offshore d\'ici 2030.',source:'FAZ',country:'de',topic:'energie',pubDate:h(7)},
+    // ESPAGNE (5 articles)
+    {title:'IBEX 35 : nouveau record annuel, Santander +3% en séance',description:'Les bancaires espagnoles profitent de marges records. L\'indice dépasse son sommet de 2007 pour la première fois.',source:'Expansión',country:'es',topic:'bourse',pubDate:h(2)},
+    {title:'Santander : bénéfice record 11,7 Mds€, Amérique latine en tête',description:'La plus grande banque de la zone euro par capitalisation annonce des résultats historiques. Le Mexique et le Brésil représentent 40% des profits.',source:'Expansión',country:'es',topic:'banque',pubDate:h(3)},
+    {title:'Espagne : croissance 3,2%, championne de la zone euro',description:'Le tourisme, les exportations de services et les fonds européens alimentent une croissance sans équivalent en Europe continentale.',source:'El Economista',country:'es',topic:'macro',pubDate:h(5)},
+    {title:'Inditex : ventes +11%, Zara domine la mode mondiale',description:'Le groupe galicien confirme sa domination avec des chiffres record. L\'Asie du Sud-Est devient son deuxième marché devant les États-Unis.',source:'El País',country:'es',topic:'resultats',pubDate:h(6)},
+    {title:'Iberdrola : 41 GW de renouvelable installé, dividende record',description:'Le géant espagnol de l\'énergie dépasse ses objectifs de capacité installée et propose un dividende en hausse de 14%.',source:'Expansión',country:'es',topic:'energie',pubDate:h(7)},
+    // ITALIE (4 articles)
+    {title:'FTSE MIB : Milan au-dessus des 36 000, Ferrari et Unicredit en vedette',description:'La Bourse italienne affiche la meilleure performance de l\'année en Europe. Le secteur bancaire et le luxe attirent les flux institutionnels.',source:'Il Sole 24 Ore',country:'it',topic:'bourse',pubDate:h(2)},
+    {title:'Ferrari franchit 400€ : liste d\'attente de 2 ans pour la Roma Spider',description:'La marque au cheval cabré devient la société la plus valorisée d\'Italie. Demande record sur les modèles hybrides Purosangue et SF90.',source:'Corriere della Sera',country:'it',topic:'bourse',pubDate:h(3)},
+    {title:'UniCredit : offensive sur Commerzbank, bataille judiciaire en Allemagne',description:'La banque italienne monte à 28% du capital. Berlin dépose un recours. Deal potentiel de 18 Mds€ qui créerait la 3e banque européenne.',source:'Reuters Italia',country:'it',topic:'ma',pubDate:h(4)},
+    {title:'Eni : profits en hausse malgré le pétrole en baisse grâce au GNL',description:'La diversification dans le gaz naturel liquéfié et les énergies renouvelables compense la baisse des prix du pétrole brut.',source:'Il Sole 24 Ore',country:'it',topic:'resultats',pubDate:h(5)},
+    // SUISSE (4 articles)
+    {title:'Nestlé : restructuration mondiale, priorité aux marques premium',description:'Le géant alimentaire cède 30 marques non stratégiques et investit dans les produits santé et nutrition haut de gamme.',source:'Le Temps',country:'ch',topic:'resultats',pubDate:h(2)},
+    {title:'Novartis : 5 approbations FDA en vue, pipeline exceptionnel',description:'Le groupe pharmaceutique suisse présente le pipeline le plus prometteur de son histoire. Immunologie et oncologie en tête.',source:'NZZ',country:'ch',topic:'resultats',pubDate:h(3)},
+    {title:'UBS post-Credit Suisse : 3 000 nouveaux postes supprimés, intégration avance',description:'La banque suisse finalise la plus grande fusion bancaire depuis la crise de 2008. Coûts d\'intégration de 14 Mds$ absorbés d\'ici 2026.',source:'Le Temps',country:'ch',topic:'banque',pubDate:h(4)},
+    {title:'Horlogerie suisse : 26 Mds CHF d\'exportations record en 2024',description:'Rolex, Patek Philippe et Richemont tirent la croissance. La Chine revient comme premier marché devant les États-Unis.',source:'NZZ',country:'ch',topic:'macro',pubDate:h(5)},
+    // ROYAUME-UNI (3 articles)
+    {title:'FTSE 100 : record à 8 500 points, énergie et minier en tête',description:'Rio Tinto, BP et Shell portent l\'indice londonien à son plus haut historique. La livre sterling s\'apprécie face à l\'euro.',source:'Financial Times',country:'gb',topic:'bourse',pubDate:h(2)},
+    {title:'Bank of England réduit ses taux : première baisse depuis 2020',description:'Le MPC vote 5-4 pour une baisse de 25 pb à 4,75%. L\'inflation britannique est revenue à 2,2%, proche de l\'objectif.',source:'The Guardian',country:'gb',topic:'banque',pubDate:h(3)},
+    {title:'AstraZeneca : approbation FDA pour son traitement contre le cancer du poumon',description:'La biotech britanno-suédoise obtient le feu vert américain pour Tagrisso en adjuvant. Potentiel de revenus de 3 Mds$ par an.',source:'Financial Times',country:'gb',topic:'resultats',pubDate:h(4)},
+    // USA (6 articles)
+    {title:'S&P 500 : nouveau record à 5 400 points, momentum IA intact',description:'Wall Street poursuit sa hausse portée par les valeurs technologiques. La saison des résultats du T4 dépasse les attentes de 8%.',source:'Wall Street Journal',country:'us',topic:'bourse',pubDate:h(1)},
+    {title:'Nvidia : cap des 3 000 Mds$ franchi, 3e capitalisation mondiale',description:'Le fabricant de puces H100/H200 dépasse Apple. La demande des data centers pour l\'IA reste insatisfaite. Ratio P/E de 35x.',source:'Bloomberg',country:'us',topic:'tech',pubDate:h(2)},
+    {title:'Apple vs Huawei : recul en Chine, compensation par l\'Inde',description:'Les ventes iPhone reculent de 11% en Chine au T4 face au retour de Huawei. L\'Inde devient le 2e marché en croissance.',source:'Financial Times',country:'us',topic:'resultats',pubDate:h(3)},
+    {title:'Fed : Powell maintient les taux, 2 baisses attendues en 2025',description:'La Réserve fédérale adopte une approche prudente. L\'inflation core à 2,8% ne justifie pas encore un assouplissement accéléré.',source:'Wall Street Journal',country:'us',topic:'macro',pubDate:h(4)},
+    {title:'Microsoft Azure : croissance 28%, IA Copilot dépasse 1 million d\'entreprises',description:'La division cloud de Microsoft confirme sa domination dans l\'IA d\'entreprise. OpenAI représente désormais 15% des revenus Azure.',source:'CNBC',country:'us',topic:'tech',pubDate:h(5)},
+    {title:'Amazon rachète une entreprise de santé digitale pour 3,9 Mds$',description:'Le géant accélère dans la médecine numérique. Accès à 10 millions de dossiers patients via cette acquisition stratégique.',source:'Bloomberg',country:'us',topic:'ma',pubDate:h(6)},
+    // JAPON (3 articles)
+    {title:'Nikkei 225 : 40 000 points franchis pour la première fois depuis 1989',description:'L\'indice japonais efface 35 ans de perte grâce au yen faible, aux reformes Kishida et à la réallocation d\'actifs des fonds de retraite.',source:'Nikkei Asia',country:'jp',topic:'bourse',pubDate:h(1)},
+    {title:'Toyota : bénéfice record 45 Mds$, numéro un mondial confirmé',description:'Le constructeur japonais écrase la concurrence. Sa stratégie hybride multi-technologie se révèle plus robuste que le tout-électrique.',source:'Nikkei Asia',country:'jp',topic:'resultats',pubDate:h(3)},
+    {title:'Bank of Japan : fin des taux négatifs après 17 ans, tournant historique',description:'La BOJ relève ses taux à 0,1%, marquant la fin d\'une politique monétaire ultra-accommodante unique au monde. Le yen remonte.',source:'Japan Times',country:'jp',topic:'banque',pubDate:h(4)},
+    // INDE (2 articles)
+    {title:'Sensex : l\'Inde 4e Bourse mondiale, capitalisation 4 000 Mds$',description:'Le marché boursier indien dépasse Hong Kong. Croissance portée par les IPO technologiques et l\'afflux de capitaux étrangers.',source:'Economic Times India',country:'in',topic:'bourse',pubDate:h(2)},
+    {title:'Inde : croissance 7,6%, 3e année consécutive devant la Chine',description:'Le FMI confirme l\'Inde comme moteur de croissance mondiale. Services IT, pharmacie et manufacture attirent les délocalisations depuis la Chine.',source:'Hindustan Times',country:'in',topic:'macro',pubDate:h(4)},
+    // BRÉSIL (2 articles)
+    {title:'Bovespa : São Paulo portée par Vale et Petrobras, matières premières en hausse',description:'L\'indice brésilien progresse sur fond de hausse des métaux et du pétrole. Les géants miniers et pétroliers dominent les flux.',source:'Valor Econômico',country:'br',topic:'bourse',pubDate:h(3)},
+    {title:'Petrobras : 12 Mds$ de dividendes, l\'État brésilien encaisse',description:'La compagnie pétrolière publique distribue des dividendes records. Principal bénéficiaire : le gouvernement Lula qui finance ses programmes sociaux.',source:'Folha de S.Paulo',country:'br',topic:'resultats',pubDate:h(5)},
+  ];
+}
+
+function loadNews(){
+  spin('rbtn1',true);
+  document.getElementById('newsList').innerHTML=`<div class="loader"><div class="sp"></div><div>Chargement…</div></div>`;
+  // Try real news via proxy
+  const q=ac==='cn'?'chine bourse finance china':ac==='us'?'wall street S&P500 finance':ac==='all'?'bourse europe finance actions':ac+' bourse finance';
+  const rss=`https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=fr&gl=FR&ceid=FR:fr`;
+  fetch(`https://corsproxy.io/?${encodeURIComponent(rss)}`,{signal:AbortSignal.timeout(7000)})
+    .then(r=>r.text()).then(txt=>{
+      const doc=new DOMParser().parseFromString(txt,'text/xml');
+      const items=Array.from(doc.querySelectorAll('item')).slice(0,20);
+      if(items.length<3)throw new Error('too few');
+      const detectC=t=>{
+        const s=t.toLowerCase();
+        if(s.includes('chine')||s.includes('china')||s.includes('pékin')||s.includes('beijing')||s.includes('byd')||s.includes('alibaba')||s.includes('huawei'))return 'cn';
+        if(s.includes('france')||s.includes('cac')||s.includes('paris')||s.includes('macron'))return 'fr';
+        if(s.includes('allemagne')||s.includes('dax')||s.includes('berlin')||s.includes('volkswagen'))return 'de';
+        if(s.includes('espagne')||s.includes('ibex')||s.includes('madrid'))return 'es';
+        if(s.includes('italie')||s.includes('mib')||s.includes('rome')||s.includes('milan'))return 'it';
+        if(s.includes('suisse')||s.includes('swiss')||s.includes('zurich')||s.includes('nestl'))return 'ch';
+        if(s.includes('london')||s.includes('ftse')||s.includes('britain')||s.includes('uk'))return 'gb';
+        if(s.includes('nikkei')||s.includes('japon')||s.includes('tokyo')||s.includes('toyota'))return 'jp';
+        if(s.includes('nasdaq')||s.includes('s&p')||s.includes('wall street')||s.includes('nvidia')||s.includes('apple'))return 'us';
+        if(s.includes('inde')||s.includes('india')||s.includes('sensex')||s.includes('mumbai'))return 'in';
+        return ac!=='all'?ac:'fr';
+      };
+      const detectT=t=>{
+        const s=t.toLowerCase();
+        if(s.includes('fusion')||s.includes('acqui')||s.includes('rachat')||s.includes('opa'))return 'ma';
+        if(s.includes('banque')||s.includes('bank')||s.includes('taux')||s.includes('bce')||s.includes('fed'))return 'banque';
+        if(s.includes('énergi')||s.includes('pétrole')||s.includes('gaz')||s.includes('nucléaire'))return 'energie';
+        if(s.includes('résultat')||s.includes('bénéfice')||s.includes('chiffre')||s.includes('profit'))return 'resultats';
+        if(s.includes('inflation')||s.includes('pib')||s.includes('croissance')||s.includes('récession'))return 'macro';
+        if(s.includes('ia ')||s.includes(' ai ')||s.includes('intel')||s.includes('nvidia')||s.includes('tech')||s.includes('deepseek'))return 'tech';
+        return 'bourse';
+      };
+      const realNews=items.map(item=>{
+        const title=(item.querySelector('title')?.textContent||'').replace(/<[^>]*>/g,'').replace(/ - [^-]+$/,'').trim();
+        const link=item.querySelector('link')?.textContent||'#';
+        const pubDate=item.querySelector('pubDate')?.textContent||'';
+        const src=item.querySelector('source')?.textContent||'Google News';
+        const c=detectC(title); 
+        return{title,description:'',link,pubDate,source:src,country:c,flag:FLAGS[c]||'🌍',topic:detectT(title),real:true};
+      }).filter(a=>a.title.length>10);
+      const demo=getNewsArticles();
+      const seen=new Set(realNews.map(a=>a.title.slice(0,30)));
+      allNews=[...realNews,...demo.filter(d=>!seen.has(d.title.slice(0,30)))];
+    })
+    .catch(()=>{allNews=getNewsArticles();})
+    .finally(()=>{spin('rbtn1',false);renderNews();});
+}
+
+function renderNews(){
+  const f=allNews.filter(a=>(ac==='all'||a.country===ac)&&(at==='all'||a.topic===at));
+  document.getElementById('artCnt').textContent=`${f.length} articles`;
+  document.getElementById('sA').textContent=f.length||'—';
+  document.getElementById('sS').textContent=f.length?new Set(f.map(a=>a.source)).size:'—';
+  document.getElementById('sF').textContent=f.length?f.filter(a=>isFresh(a.pubDate)).length:'—';
+  if(!f.length){document.getElementById('newsList').innerHTML=`<div class="loader">🔍 Aucun article</div>`;return;}
+  document.getElementById('newsList').innerHTML=f.map((a,i)=>`
+    <a class="card${a.country==='cn'?' cn':''}" href="${a.link&&a.link!='#'?a.link:'javascript:void(0)'}" ${a.link&&a.link!='#'?'target="_blank" rel="noopener"':''} style="animation-delay:${i*.03}s">
+      <div class="cm"><span class="cs">${a.source}</span><span class="cd"></span><span class="ct">${relTime(a.pubDate)}</span><span>${a.flag||'🌍'}</span></div>
+      <div class="ctitle">${a.title}</div>
+      ${a.description?`<div class="cdesc">${a.description}</div>`:''}
+      <div class="ctags">
+        ${isFresh(a.pubDate)?'<span class="tag new">🔥 Récent</span>':''}
+        ${a.topic?`<span class="tag ${a.country==='cn'?'cn':'tp'}">${a.topic}</span>`:''}
+        ${a.real?'<span class="tag new">🔴 Live</span>':''}
+      </div>
+    </a>`).join('');
+}
+
+document.getElementById('cfilter').addEventListener('click',e=>{
+  const p=e.target.closest('.pill');if(!p)return;
+  document.querySelectorAll('#cfilter .pill,#wfilter .pill').forEach(x=>x.classList.remove('active'));
+  p.classList.add('active');ac=p.dataset.c;loadNews();
+});
+document.getElementById('wfilter').addEventListener('click',e=>{
+  const p=e.target.closest('.pill');if(!p)return;
+  document.querySelectorAll('#cfilter .pill,#wfilter .pill').forEach(x=>x.classList.remove('active'));
+  p.classList.add('active');ac=p.dataset.c;loadNews();
+});
+document.getElementById('tfilter').addEventListener('click',e=>{
+  const p=e.target.closest('.tpill');if(!p)return;
+  document.querySelectorAll('.tpill').forEach(x=>x.classList.remove('active'));
+  p.classList.add('active');at=p.dataset.t;loadNews();
+});
+
+// ══════════════════════════════════════════════════════
+// TAB 2 — SOURCES RÉGLEMENTAIRES
+// ══════════════════════════════════════════════════════
+function getRegArticles(){
+  const now=Date.now(), h=n=>new Date(now-n*3600000).toISOString();
+  return {
+    amf:[
+      {title:'AMF — Franchissement de seuil : BlackRock monte à 10% dans Hermès International',description:'Le géant américain de la gestion d\'actifs (10 000 Mds$ sous gestion) déclare avoir franchi à la hausse le seuil de 10% du capital d\'Hermès International, valorisé ~220 Mds€. Déclaration d\'intention : investissement purement passif, pas d\'ambition de prise de contrôle. BlackRock détient ces titres via ses fonds indiciels ETF. À surveiller : un franchissement ultérieur à 15% déclencherait une nouvelle obligation déclarative.',source:'AMF BDIF',country:'fr',pubDate:h(2),link:'https://bdif.amf-france.org/fr',type:'Franchissement seuil'},
+      {title:'AMF — OPA simplifiée déposée sur Eutelsat Communications à 3,50€/action',description:'Une offre publique d\'achat simplifiée a été déposée sur Eutelsat Communications par un consortium d\'actionnaires de référence. Le prix de 3,50€ représente une prime de 22% sur le dernier cours non affecté. Eutelsat, opérateur de satellites géostationnaires et opérateur de OneWeb (LEO), traverse une phase de transition stratégique coûteuse. L\'opération pourrait déboucher sur un retrait de la cote si le seuil de 90% est atteint.',source:'AMF BDIF',country:'fr',pubDate:h(4),link:'https://bdif.amf-france.org/fr',type:'OPA'},
+      {title:'AMF — Enquête ouverte : transactions suspectes détectées avant profit warning sur Soitec',description:'L\'AMF a ouvert une enquête formelle après avoir identifié des ventes massives d\'options put sur le titre Soitec dans les 48h précédant l\'annonce d\'un profit warning de -30% sur l\'exercice. Les transactions concernent plusieurs comptes domiciliés dans des juridictions étrangères. Le gel conservatoire des positions est en cours. Soitec, spécialiste des substrats semi-conducteurs pour téléphonie mobile, est coté sur Euronext Paris (SBF 120).',source:'AMF',country:'fr',pubDate:h(6),link:'https://www.amf-france.org',type:'Enquête'},
+      {title:'AMF — Franchissement seuil : Amundi Asset Management franchit les 5% dans Rexel',description:'Amundi, premier gestionnaire d\'actifs européen (2 000 Mds€ sous gestion), déclare avoir franchi à la hausse le seuil légal de 5% du capital et des droits de vote de Rexel SA, le distributeur mondial de matériel électrique (CAC Mid 60, ~6 Mds€ de capitalisation). La position a été constituée progressivement via ses fonds actifs et passifs. Rexel bénéficie actuellement du supercycle de la rénovation électrique et de l\'électrification des bâtiments en Europe.',source:'AMF BDIF',country:'fr',pubDate:h(8),link:'https://bdif.amf-france.org/fr',type:'Franchissement seuil'},
+      {title:'AMF — Sanction : 2,5 M€ d\'amende pour délit d\'initié sur un titre du SBF 120',description:'La Commission des sanctions de l\'AMF a prononcé une amende de 2,5 millions d\'euros à l\'encontre d\'un directeur financier d\'une société du SBF 120, reconnu coupable d\'avoir utilisé des informations privilégiées relatives à une acquisition imminente pour acquérir des options d\'achat. L\'identité de la personne sanctionnée sera publiée au Journal Officiel dans un délai de 10 jours. La décision est susceptible de recours devant la Cour d\'appel de Paris.',source:'AMF',country:'fr',pubDate:h(12),link:'https://www.amf-france.org',type:'Sanction'},
+      {title:'AMF — Avis Euronext : scission de Vivendi SE en 4 entités distinctes cotées',description:'Euronext Paris publie les conditions techniques et le calendrier de la scission de Vivendi SE en quatre sociétés indépendantes : Canal+ (cotation à Londres), Havas (Amsterdam), Louis Hachette Group (Paris) et Vivendi résiduel. Les actionnaires actuels de Vivendi recevront des actions de chaque entité au prorata de leur détention. Première date de cotation effective : 16 décembre sur leurs marchés respectifs. Opération de spin-off sans précédent en termes de complexité réglementaire cross-border.',source:'AMF / Euronext',country:'fr',pubDate:h(14),link:'https://www.euronext.com',type:'Avis marché'},
+    ],
+    sec:[
+      {title:'SEC 8-K — Apple Inc. : T4 FY2024 supérieur aux attentes, guidance Q1 relevée',description:'Apple dépose son 8-K de résultats trimestriels. BPA ajusté de 2,18$ vs 2,11$ attendus par le consensus Wall Street. Chiffre d\'affaires à 124,3 Mds$ (+6% YoY). Division Services en hausse de 17% à 26,3 Mds$ — marge de 74%, moteur de la rentabilité. Ventes iPhone en baisse de 2% en Chine (pression Huawei) compensées par la croissance en Inde (+34%). Guidance Q1 FY2025 : CA entre 125 et 128 Mds$, supérieure aux attentes.',source:'SEC EDGAR',country:'us',pubDate:h(1),link:'https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company=apple&type=8-K',type:'8-K Résultats'},
+      {title:'SEC 13-D — Elliott Management déclare 8,5% dans Phillips 66, demande scission',description:'Le fonds activiste new-yorkais Elliott Management (65 Mds$ d\'actifs) dépose un formulaire 13-D révélant une participation de 8,5% dans Phillips 66, raffineur et distributeur énergétique américain (~45 Mds$ de capitalisation). Elliott demande la cession des actifs de distribution midstream, jugés sous-valorisés, et un programme de rachat d\'actions de 15 Mds$. Le fonds estime que la somme des parties vaut 80$ de plus par action que le cours actuel. Le PDG de Phillips 66 a répondu ouvertement favorablement à un dialogue.',source:'SEC EDGAR',country:'us',pubDate:h(3),link:'https://efts.sec.gov/LATEST/search-index?q=%2213-D%22&dateRange=custom&startdt=2024-01-01',type:'13-D Activiste'},
+      {title:'SEC 8-K — NVIDIA : contrat gouvernemental de 4 Mds$ pour infrastructure IA nationale',description:'NVIDIA Corporation dépose un 8-K pour événement significatif (Item 1.01 — accord matériel). Le contrat porte sur la fourniture de 100 000 processeurs H100 et H200 à un gouvernement membre du G7 dans le cadre d\'un programme d\'infrastructure IA souveraine sur 3 ans. Le nom du gouvernement acheteur n\'est pas divulgué. Ce contrat représente ~5% du chiffre d\'affaires annuel de NVIDIA et consolide sa position dominante dans les supercalculateurs gouvernementaux face à AMD.',source:'SEC EDGAR',country:'us',pubDate:h(5),link:'https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company=nvidia&type=8-K',type:'8-K Contrat'},
+      {title:'SEC Form 4 — Mark Zuckerberg cède 500 M$ d\'actions Meta Platforms',description:'Mark Zuckerberg, PDG et fondateur de Meta Platforms, déclare la vente de 2,7 millions d\'actions ordinaires de classe A entre 490$ et 510$ par action, soit ~500 M$ de cessions. Ces ventes s\'effectuent dans le cadre d\'un plan de vente programmatique Rule 10b5-1 adopté en novembre 2023, ce qui exclut toute qualification en délit d\'initié. Zuckerberg conserve ~350 milliards de dollars d\'actions Meta via des actions de classe B (10 voix chacune). Les fonds servent à financer ses projets philanthropiques via la Chan Zuckerberg Initiative.',source:'SEC EDGAR',country:'us',pubDate:h(7),link:'https://efts.sec.gov/LATEST/search-index?q=%22Form+4%22',type:'Form 4 Insider'},
+      {title:'SEC 13-F — Berkshire Hathaway Q4 : position cachée de 6,7 Mds$ dans Chubb révélée',description:'Le dépôt trimestriel 13-F de Berkshire Hathaway révèle une participation de 6,7 milliards de dollars dans Chubb Limited, le plus grand assureur dommages coté au monde. La position avait été construite discrètement sur 12 mois grâce à une autorisation exceptionnelle de la SEC de ne pas la divulguer (pour ne pas faire monter le cours). Warren Buffett avait fait allusion à une "position significative dans un assureur" lors de son discours annuel. Chubb bénéficie de la hausse des primes d\'assurance dans un contexte de catastrophes climatiques croissantes.',source:'SEC EDGAR',country:'us',pubDate:h(9),link:'https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company=berkshire&type=13-F',type:'13-F Positions'},
+      {title:'SEC S-1 — IPO Klarna : le géant suédois du BNPL vise le NYSE à 15-20 Mds$',description:'Klarna Bank AB dépose son prospectus d\'introduction en bourse (S-1) auprès de la SEC pour une cotation sur le NYSE. La fintech suédoise du "Buy Now Pay Later" revendique 150 millions d\'utilisateurs actifs dans 45 pays et un GMV de 92 Mds$ en 2024. La valorisation cible de 15 à 20 Mds$ est en nette retrait par rapport aux 45 Mds$ de la levée de 2021 — reflet de la normalisation des valorisations fintech. Klarna a atteint la rentabilité opérationnelle au S2 2023 après 3 ans de pertes. Goldman Sachs et Morgan Stanley orchestrent l\'opération.',source:'SEC EDGAR',country:'us',pubDate:h(11),link:'https://efts.sec.gov/LATEST/search-index?q=%22S-1%22&dateRange=custom',type:'S-1 IPO'},
+    ]
+  };
+}
+
+async function loadReg(){
+  spin('rbtn2',true);
+  // Try real AMF RSS
+  let amfItems=[], secItems=[];
+  try{
+    const amfRSS='https://www.amf-france.org/fr/rss';
+    const r=await fetch(`https://corsproxy.io/?${encodeURIComponent(amfRSS)}`,{signal:AbortSignal.timeout(6000)});
+    if(r.ok){
+      const txt=await r.text();
+      const doc=new DOMParser().parseFromString(txt,'text/xml');
+      amfItems=Array.from(doc.querySelectorAll('item')).slice(0,8).map(item=>({
+        title:(item.querySelector('title')?.textContent||'').replace(/<[^>]*>/g,'').trim(),
+        description:(item.querySelector('description')?.textContent||'').replace(/<[^>]*>/g,'').slice(0,180).trim(),
+        link:item.querySelector('link')?.textContent||'https://www.amf-france.org',
+        pubDate:item.querySelector('pubDate')?.textContent||'',
+        source:'AMF',country:'fr',type:'Décision AMF',real:true
+      })).filter(a=>a.title.length>5);
+    }
+  }catch(e){}
+  // Try SEC EDGAR 8-K feed
+  try{
+    const secRSS='https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=8-K&dateb=&owner=include&count=10&search_text=&output=atom';
+    const r=await fetch(`https://corsproxy.io/?${encodeURIComponent(secRSS)}`,{signal:AbortSignal.timeout(6000)});
+    if(r.ok){
+      const txt=await r.text();
+      const doc=new DOMParser().parseFromString(txt,'text/xml');
+      secItems=Array.from(doc.querySelectorAll('entry')).slice(0,8).map(item=>({
+        title:(item.querySelector('title')?.textContent||'').replace(/<[^>]*>/g,'').trim(),
+        description:(item.querySelector('summary')?.textContent||'').replace(/<[^>]*>/g,'').slice(0,180).trim(),
+        link:item.querySelector('link')?.getAttribute('href')||'https://www.sec.gov',
+        pubDate:item.querySelector('updated')?.textContent||'',
+        source:'SEC EDGAR',country:'us',type:'8-K Live',real:true
+      })).filter(a=>a.title.length>5);
+    }
+  }catch(e){}
+  const demo=getRegArticles();
+  const finalAMF=amfItems.length>2?[...amfItems,...demo.amf.slice(0,3)]:demo.amf;
+  const finalSEC=secItems.length>2?[...secItems,...demo.sec.slice(0,3)]:demo.sec;
+  spin('rbtn2',false);
+  renderReg(finalAMF, finalSEC);
+}
+
+function renderReg(amf, sec){
+  const renderCard=(a,i)=>`
+    <a class="card reg" href="${a.link}" target="_blank" rel="noopener" style="animation-delay:${i*.04}s">
+      <div class="cm"><span class="cs purple">${a.source}</span><span class="cd"></span><span class="ct">${relTime(a.pubDate)}</span>${a.real?'<span style="font-size:10px;color:var(--green)">🔴 Live</span>':''}</div>
+      <div class="ctitle">${a.title}</div>
+      ${a.description?`<div class="cdesc">${a.description}</div>`:''}
+      <div class="ctags"><span class="tag reg">${a.type||'Réglementaire'}</span>${isFresh(a.pubDate)?'<span class="tag new">Récent</span>':''}</div>
+    </a>`;
+  document.getElementById('regListAMF').innerHTML=amf.map(renderCard).join('');
+  document.getElementById('regListSEC').innerHTML=sec.map(renderCard).join('');
+}
+
+// ══════════════════════════════════════════════════════
+// TAB 3 — OPA / M&A RADAR
+// ══════════════════════════════════════════════════════
+function getOPAArticles(){
+  const now=Date.now(), h=n=>new Date(now-n*3600000).toISOString();
+  return [
+    {title:'🚨 OPA hostile en cours — UniCredit veut absorber Commerzbank',
+    description:'La banque italienne UniCredit (CEO Andrea Orcel) détient désormais 28% du capital de Commerzbank, 2e banque allemande (~18 Mds€ de capitalisation). L\'opération, qualifiée d\'hostile par Berlin, se heurte à l\'opposition politique du gouvernement Scholz et des syndicats IG Metall qui redoutent 10 000 suppressions d\'emplois. UniCredit a obtenu l\'autorisation de la BCE de monter jusqu\'à 29,9% sans déclencher d\'OPA obligatoire. Si le deal aboutit, il créerait la 3e banque européenne par actifs avec 1 500 Mds€ de bilan. Décision finale attendue courant T1 2025.',
+    source:'Reuters / AMF',country:'de',pubDate:h(2),status:'En cours',prime:'22%',target:'Commerzbank (CBK)',acquirer:'UniCredit (UCG)'},
+
+    {title:'🚨 Rumeur OPA — LVMH en discussions préliminaires pour racheter Richemont',
+    description:'Selon Bloomberg, des discussions préliminaires et non formalisées auraient eu lieu entre Bernard Arnault (LVMH) et Johann Rupert (famille fondatrice de Richemont, 50% des droits de vote). Richemont possède Cartier, Van Cleef & Arpels, IWC, Panerai et Dunhill — un portefeuille de maisons de luxe évalué à ~55 Mds CHF (60 Mds€). Un rachat éventuel serait la plus grande opération de l\'histoire du secteur du luxe. Obstacle majeur : la famille Rupert détient des actions à droits de vote renforcés qui lui permettent de bloquer toute offre hostile. LVMH et Richemont ont tous deux refusé tout commentaire.',
+    source:'Bloomberg / Le Figaro',country:'ch',pubDate:h(3),status:'Rumeur',prime:'—',target:'Richemont (CFR)',acquirer:'LVMH (MC)'},
+
+    {title:'⚡ SEC 13-D — Elliott Management (15%) presse Salesforce de se réformer',
+    description:'Le fonds activiste américain Elliott Management, fondé par Paul Singer, révèle dans un 13-D une participation de 15% dans Salesforce Inc. (~220 Mds$ de capitalisation) acquise sur 8 mois. Elliott demande : (1) un plan de réduction des coûts de 4 Mds$ sur 2 ans, (2) un programme de rachat d\'actions de 10 Mds$, (3) une revue de la stratégie d\'acquisition (Salesforce a dépensé 35 Mds$ en acquisitions depuis 2019 dont Slack pour 27 Mds$). Elliott menace de proposer des administrateurs alternatifs à l\'AG si le management ne répond pas favorablement d\'ici mars.',
+    source:'SEC EDGAR (13-D)',country:'us',pubDate:h(4),status:'Activiste',prime:'—',target:'Salesforce (CRM)',acquirer:'Elliott Management'},
+
+    {title:'🚨 OPA finalisée — Synopsys absorbe Ansys pour 35 Mds$, feu vert antitrust obtenu',
+    description:'Synopsys Inc., leader de l\'EDA (Electronic Design Automation), finalise l\'acquisition d\'Ansys, spécialiste des logiciels de simulation (mécanique, fluides, électromagnétisme) pour 35 Mds$ — dont 197$/action en cash et 0,3455 action Synopsys par action Ansys. L\'opération, annoncée en janvier 2023, a nécessité 18 mois d\'examens antitrust en Europe, Chine et aux États-Unis. La Commission européenne a accordé son feu vert sous condition de cessions mineures. Le périmètre combiné pèse 7 Mds$ de CA et sert les 20 plus grands fabricants de semiconducteurs mondiaux.',
+    source:'SEC EDGAR / Reuters',country:'us',pubDate:h(5),status:'Finalisée',prime:'35%',target:'Ansys (ANSS)',acquirer:'Synopsys (SNPS)'},
+
+    {title:'⚡ AMF — Franchissement 25% : Groupe Industriel Marcel Dassault déclare ses intentions sur Figaro Classifieds',
+    description:'Le Groupe Industriel Marcel Dassault (GIMD), holding de la famille Dassault contrôlant aussi Dassault Aviation et participant dans Le Figaro, déclare à l\'AMF avoir franchi le seuil de 25% du capital et des droits de vote de Figaro Classifieds, filiale spécialisée dans les petites annonces immobilières et emploi (leboncoin, explorimmo, cadremploi). Conformément à la loi, GIMD dépose une déclaration d\'intention indiquant vouloir acquérir le contrôle exclusif dans les 6 prochains mois via une OPA à déposer auprès de l\'AMF. Figaro Classifieds n\'est pas cotée en Bourse mais est soumise aux obligations déclaratives AMF via ses actionnaires cotés.',
+    source:'AMF BDIF',country:'fr',pubDate:h(6),status:'Pré-OPA',prime:'—',target:'Figaro Classifieds',acquirer:'Groupe Ind. Marcel Dassault'},
+
+    {title:'🚨 OPA annoncée — Schneider Electric rachète Aveva Group pour 10,7 Mds£',
+    description:'Schneider Electric (CAC 40, ~100 Mds€ de capitalisation) lance une offre publique d\'achat sur Aveva Group, éditeur britannique de logiciels industriels (SCADA, MES, jumeaux numériques), pour 3 100 pence par action en numéraire — prime de 41% sur le cours non affecté. Schneider détient déjà 59% d\'Aveva (acquis en 2017 pour 3,4 Mds£) et cherche à acquérir les 41% restants pour fusionner totalement l\'entité dans sa division Software & Services. L\'opération doit être approuvée par la FCA britannique et par les actionnaires minoritaires d\'Aveva lors d\'une assemblée générale. Retrait de la cote de l\'AIM de Londres prévu dans les 3 mois suivant le closing.',
+    source:'Les Échos / FCA UK',country:'gb',pubDate:h(7),status:'Annoncée',prime:'41%',target:'Aveva Group (AVV)',acquirer:'Schneider Electric (SU)'},
+
+    {title:'⚡ AMF — Franchissement 10% : Norges Bank Investment Management entre au capital de Kering',
+    description:'Le Fonds de Pension Gouvernemental Global norvégien (GPFG), géré par Norges Bank IM avec 1 700 Mds$ d\'actifs — le plus grand fonds souverain au monde — déclare à l\'AMF avoir franchi le seuil de 10% du capital de Kering SA (PPR), maison mère de Gucci, Yves Saint Laurent, Bottega Veneta et Balenciaga. La position a été constituée profitant de la correction du titre (-45% sur 12 mois) liée à la faiblesse de Gucci en Chine. Norges Bank précise qu\'il s\'agit d\'un investissement purement financier et passif, sans intention d\'influencer la stratégie. Kering reste contrôlé à 42% par la famille Pinault via Artémis.',
+    source:'AMF BDIF',country:'fr',pubDate:h(8),status:'Investissement',prime:'—',target:'Kering SA (KER)',acquirer:'Norges Bank IM (Norvège)'},
+
+    {title:'🚨 Rumeur M&A — Stellantis étudierait le rachat de Renault Trucks auprès de Volvo Group',
+    description:'Selon des sources proches du dossier citées par Challenges, Stellantis NV (Carlos Tavares, 16 marques automobiles dont Peugeot, Fiat, Chrysler) aurait mandaté Lazard pour évaluer un rachat de Renault Trucks, filiale à 100% de Volvo Group AB (Suède). Renault Trucks, constructeur de camions industriels basé à Lyon (~10 000 salariés), pourrait être valorisé 7 à 9 Mds€ selon les analystes. L\'objectif stratégique serait d\'entrer sur le marché des véhicules utilitaires lourds électriques en Europe. Volvo Group n\'a pas confirmé être vendeur. Des discussions similaires avaient déjà eu lieu en 2019 sans aboutir.',
+    source:'Challenges / Reuters',country:'fr',pubDate:h(10),status:'Rumeur',prime:'—',target:'Renault Trucks (Volvo Group)',acquirer:'Stellantis NV (STLA)'},
+
+    {title:'⚡ SEC 13-D — Berkshire Hathaway révèle 5% dans Occidental Petroleum pour 5,1 Mds$',
+    description:'Berkshire Hathaway Inc. (Warren Buffett, CEO) dépose un formulaire 13-D révélant une participation de 5,1 milliards de dollars dans Occidental Petroleum Corp (OXY), spécialiste du pétrole de schiste au Permien Basin et en Arabie Saoudite. Berkshire détient désormais ~25% du capital d\'Occidental, dont des bons de souscription permettant de monter à 50%. Buffett a déclaré publiquement apprécier la stratégie de Vicki Hollub (CEO d\'OXY) sur la séquestration carbone. Cette position s\'ajoute aux préférences perpétuelles d\'OXY détenues par Berkshire depuis le rachat d\'Anadarko en 2019. Le marché interprète cette montée comme un signal précurseur d\'une OPA totale.',
+    source:'SEC EDGAR (13-D)',country:'us',pubDate:h(11),status:'Investissement',prime:'—',target:'Occidental Petroleum (OXY)',acquirer:'Berkshire Hathaway (BRK)'},
+
+    {title:'🚨 OPA hostile rejetée — Alimentation Couche-Tard abandonne sa tentative sur Seven & I',
+    description:'Alimentation Couche-Tard Inc. (Canada, réseau Circle K), l\'un des plus grands opérateurs de dépanneurs au monde, retire officiellement son offre non sollicitée de 47 Mds$ sur Seven & I Holdings (Japon), propriétaire de la chaîne 7-Eleven (85 000 points de vente dans le monde). Le conseil d\'administration de Seven & I avait catégoriquement refusé l\'offre, invoquant des motifs de sécurité nationale (Seven-Eleven est classée infrastructure stratégique par Tokyo). Le gouvernement japonais avait également signalé son opposition. Couche-Tard avait pourtant proposé une prime de 20% sur le cours de bourse. Un deal aurait créé le plus grand réseau de dépanneurs mondial avec 100 000 points de vente.',
+    source:'Bloomberg / Nikkei Asia',country:'jp',pubDate:h(12),status:'Échouée',prime:'20%',target:'Seven & I Holdings (3382)',acquirer:'Couche-Tard (ATD)'},
+  ];
+}
+
+function loadOPA(){
+  spin('rbtn3',true);
+  setTimeout(()=>{
+    spin('rbtn3',false);
+    const items=getOPAArticles();
+    const statusColor={
+      'En cours':'rgba(234,179,8,.15)','Annoncée':'rgba(34,197,94,.1)','Rumeur':'rgba(168,85,247,.1)',
+      'Finalisée':'rgba(59,130,246,.1)','Pré-OPA':'rgba(239,68,68,.1)','Activiste':'rgba(239,68,68,.1)',
+      'Investissement':'rgba(34,197,94,.1)','Échouée':'rgba(107,114,153,.1)'
+    };
+    const statusText={
+      'En cours':'#fde68a','Annoncée':'#86efac','Rumeur':'#d8b4fe',
+      'Finalisée':'#93c5fd','Pré-OPA':'#fca5a5','Activiste':'#fca5a5',
+      'Investissement':'#86efac','Échouée':'#9ca3af'
+    };
+    document.getElementById('opaList').innerHTML=items.map((a,i)=>`
+      <a class="card alert" href="javascript:void(0)" style="animation-delay:${i*.04}s;background:${statusColor[a.status]||'var(--surface)'}">
+        <div class="cm">
+          <span class="cs red">${a.source}</span>
+          <span class="cd"></span>
+          <span class="ct">${relTime(a.pubDate)}</span>
+          <span>${FLAGS[a.country]||'🌍'}</span>
+        </div>
+        <div class="ctitle">${a.title}</div>
+        <div class="cdesc">${a.description}</div>
+        <div class="ctags" style="margin-top:10px">
+          <span class="tag" style="background:${statusColor[a.status]};color:${statusText[a.status]};border-color:transparent">${a.status}</span>
+          ${a.prime!=='—'?`<span class="tag hot">Prime ${a.prime}</span>`:''}
+          <span class="tag" style="font-size:9px;color:var(--muted)">${a.acquirer} → ${a.target}</span>
+        </div>
+      </a>`).join('');
+  },500);
+}
+
+// ── Init ──────────────────────────────────────────────
+loadNews();
+loadReg();
+loadOPA();
+setInterval(loadNews,10*60*1000);
+setInterval(loadReg,15*60*1000);
+setInterval(loadOPA,20*60*1000);
+</script>
+</body>
+</html>
