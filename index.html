@@ -540,9 +540,12 @@ async function loadNews(){
   document.getElementById('newsList').innerHTML=`<div class="loader"><div class="sp"></div><div>Chargement des vraies news…</div></div>`;
   const q=QUERIES[ac]||QUERIES.all;
   const url=`https://gnews.io/api/v4/search?q=${encodeURIComponent(q)}&lang=fr&country=any&max=20&apikey=${GNEWS_KEY}`;
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),10000);
   try{
-    const r=await fetch(url,{signal:AbortSignal.timeout(10000)});
-    if(!r.ok)throw new Error('GNews error '+r.status);
+    const r=await fetch(url,{signal:controller.signal});
+    clearTimeout(timer);
+    if(!r.ok)throw new Error('GNews '+r.status);
     const data=await r.json();
     const articles=data.articles||[];
     if(articles.length<2)throw new Error('too few');
@@ -557,10 +560,9 @@ async function loadNews(){
       topic:detectTopic((a.title||'')+(a.description||'')),
       real:true
     })).filter(a=>a.title.length>5);
-    // Ajoute le drapeau
     allNews.forEach(a=>{a.flag=FLAGS[a.country]||'🌍'});
   }catch(e){
-    // Fallback données démo si erreur API
+    clearTimeout(timer);
     allNews=getNewsArticles();
     console.warn('GNews fallback:',e.message);
   }
