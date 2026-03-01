@@ -161,6 +161,7 @@
       <div>
         <div class="logo">Global<span>Finance</span></div>
         <div class="logo-sub">Veille boursière mondiale</div>
+        <div style="font-size:9px;color:var(--muted);font-family:'DM Sans',sans-serif;margin-top:2px">par Hervé · <span id="majDate"></span></div>
       </div>
       <div class="header-right">
         <div class="date-main" id="dateEl"></div>
@@ -175,6 +176,7 @@
     <div class="tab active" data-tab="news">📰 Actualités</div>
     <div class="tab" data-tab="reg">🏛️ AMF / SEC</div>
     <div class="tab" data-tab="opa">🚨 OPA / M&A</div>
+    <div class="tab" data-tab="search">🔍 Recherche</div>
   </div>
 
   <!-- ══════════════ TAB 1 : NEWS ══════════════ -->
@@ -270,13 +272,28 @@
     </div>
     <div class="list" id="opaList"></div>
   </div>
+
+  <!-- ══════════════ TAB 4 : RECHERCHE ══════════════ -->
+  <div class="tab-content" id="tab-search">
+    <div style="position:relative;margin-bottom:16px">
+      <input type="text" id="searchInput" placeholder="Rechercher dans toutes les actualités…"
+        style="width:100%;padding:12px 44px 12px 16px;border:2px solid var(--border2);border-radius:4px;font-size:14px;font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text);outline:none;transition:border-color .2s"
+        oninput="doSearch()" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border2)'">
+      <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:18px;opacity:.4">🔍</span>
+    </div>
+    <div class="infobox" style="font-size:11px">
+      Recherche dans <strong>toutes les actualités</strong> : news, AMF, SEC, OPA/M&A · Insensible aux majuscules · Résultats en temps réel
+    </div>
+    <div id="searchStats" style="font-size:11px;color:var(--muted);margin-bottom:10px;font-style:italic"></div>
+    <div class="list" id="searchList"></div>
+  </div>
 </div>
 
 <nav class="bnav">
   <div class="ni active"><div class="ni-icon">📰</div>News</div>
-  <div class="ni"><div class="ni-icon">📊</div>Marchés</div>
-  <div class="ni"><div class="ni-icon">⭐</div>Favoris</div>
-  <div class="ni"><div class="ni-icon">⚙️</div>Réglages</div>
+  <div class="ni"><div class="ni-icon">🏛️</div>AMF/SEC</div>
+  <div class="ni"><div class="ni-icon">🚨</div>OPA</div>
+  <div class="ni"><div class="ni-icon">🔍</div>Recherche</div>
 </nav>
 
 <script>
@@ -288,6 +305,9 @@ function updateDate(){
   document.getElementById('dateEl').innerHTML=
     n.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})+'<br>'+
     n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  // Mise à jour dynamique : "mis à jour le X mars 2026"
+  const mois=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  document.getElementById('majDate').textContent=`mis à jour ${n.getDate()} ${mois[n.getMonth()]} ${n.getFullYear()}`;
 }
 updateDate(); setInterval(updateDate,30000);
 function relTime(d){
@@ -307,7 +327,89 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
   document.querySelectorAll('.tab-content').forEach(x=>x.classList.remove('active'));
   t.classList.add('active');
   document.getElementById('tab-'+t.dataset.tab).classList.add('active');
+  // Sync bottom nav
+  const idx=['news','reg','opa','search'].indexOf(t.dataset.tab);
+  document.querySelectorAll('.ni').forEach((n,i)=>n.classList.toggle('active',i===idx));
+  if(t.dataset.tab==='search')document.getElementById('searchInput').focus();
 }));
+// Bottom nav sync
+document.querySelectorAll('.ni').forEach((n,i)=>n.addEventListener('click',()=>{
+  const tabs=['news','reg','opa','search'];
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.ni').forEach(x=>x.classList.remove('active'));
+  n.classList.add('active');
+  const tab=document.querySelector(`.tab[data-tab="${tabs[i]}"]`);
+  if(tab)tab.classList.add('active');
+  const content=document.getElementById('tab-'+tabs[i]);
+  if(content)content.classList.add('active');
+}));
+
+// ══════════════════════════════════════════════════════
+// RECHERCHE — cherche dans TOUS les contenus
+// ══════════════════════════════════════════════════════
+function getAllContent(){
+  const reg=getRegArticles();
+  const opa=getOPAArticles();
+  return [
+    ...allNews.map(a=>({...a,_from:'news'})),
+    ...reg.amf.map(a=>({...a,_from:'amf'})),
+    ...reg.sec.map(a=>({...a,_from:'sec'})),
+    ...opa.map(a=>({...a,_from:'opa'})),
+  ];
+}
+
+function doSearch(){
+  const q=document.getElementById('searchInput').value.trim().toLowerCase();
+  const list=document.getElementById('searchList');
+  const stats=document.getElementById('searchStats');
+  if(q.length<2){
+    list.innerHTML='';
+    stats.textContent='Tapez au moins 2 caractères…';
+    return;
+  }
+  const all=getAllContent();
+  // Recherche floue : tous les mots doivent être présents (dans n'importe quel ordre)
+  const words=q.split(/\s+/).filter(w=>w.length>1);
+  const results=all.filter(a=>{
+    const hay=(a.title+' '+(a.description||'')+(a.source||'')+(a.type||'')).toLowerCase();
+    return words.every(w=>hay.includes(w));
+  });
+  stats.textContent=`${results.length} résultat${results.length!==1?'s':''} pour "${q}"`;
+  if(!results.length){
+    list.innerHTML=`<div class="loader">🔍 Aucun résultat — essayez d'autres mots-clés</div>`;
+    return;
+  }
+  const fromLabel={news:'Actualités',amf:'AMF',sec:'SEC EDGAR',opa:'OPA/M&A'};
+  const fromColor={news:'var(--accent2)',amf:'var(--purple)',sec:'var(--blue)',opa:'var(--red)'};
+  list.innerHTML=results.map((a,i)=>`
+    <a class="card" href="${a.link&&a.link!='#'?a.link:'javascript:void(0)'}" ${a.link&&a.link!='#'?'target="_blank" rel="noopener"':''} style="animation-delay:${i*.02}s;border-left:3px solid ${fromColor[a._from]||'var(--border2)'}">
+      <div class="cm">
+        <span class="cs" style="color:${fromColor[a._from]}">${fromLabel[a._from]||a._from}</span>
+        <span class="cd"></span>
+        <span class="cs" style="font-size:9px;color:var(--muted);text-transform:none;letter-spacing:0;font-weight:400">${a.source||''}</span>
+        <span class="cd"></span>
+        <span class="ct">${relTime(a.pubDate)}</span>
+        <span>${a.flag||FLAGS[a.country]||'🌍'}</span>
+      </div>
+      <div class="ctitle">${highlight(a.title,words)}</div>
+      ${a.description?`<div class="cdesc">${highlight(a.description,words)}</div>`:''}
+      <div class="ctags">
+        ${a.type?`<span class="tag reg">${a.type}</span>`:''}
+        ${a.topic?`<span class="tag tp">${a.topic}</span>`:''}
+        ${a.status?`<span class="tag hot">${a.status}</span>`:''}
+      </div>
+    </a>`).join('');
+}
+
+function highlight(text,words){
+  let t=text;
+  words.forEach(w=>{
+    const re=new RegExp(`(${w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi');
+    t=t.replace(re,'<mark style="background:#fff3b0;color:var(--text);border-radius:2px;padding:0 2px">$1</mark>');
+  });
+  return t;
+}
 
 // ══════════════════════════════════════════════════════
 // TAB 1 — NEWS
@@ -388,55 +490,82 @@ function getNewsArticles(){
   ];
 }
 
-function loadNews(){
+const GNEWS_KEY='0ab023e5b1308545b7544ff10514c30f';
+
+const QUERIES={
+  all:'bourse finance marchés actions europe',
+  fr:'CAC40 bourse France actions',
+  de:'DAX bourse Allemagne actions',
+  es:'IBEX bourse Espagne',
+  it:'FTSE MIB bourse Italie',
+  nl:'AEX bourse Pays-Bas',
+  be:'BEL20 bourse Belgique',
+  ch:'SMI bourse Suisse',
+  gb:'FTSE bourse Royaume-Uni',
+  cn:'bourse Chine Shanghai finance',
+  us:'Wall Street S&P500 Nasdaq',
+  jp:'Nikkei bourse Japon',
+  in:'Sensex bourse Inde',
+  br:'Bovespa bourse Brésil',
+};
+
+function detectCountry(t){
+  const s=t.toLowerCase();
+  if(s.includes('chine')||s.includes('china')||s.includes('pékin')||s.includes('beijing')||s.includes('byd')||s.includes('alibaba')||s.includes('huawei')||s.includes('shanghai'))return 'cn';
+  if(s.includes('france')||s.includes('cac')||s.includes('macron')||s.includes('paris bourse'))return 'fr';
+  if(s.includes('allemagne')||s.includes('dax')||s.includes('berlin')||s.includes('volkswagen')||s.includes('deutsche'))return 'de';
+  if(s.includes('espagne')||s.includes('ibex')||s.includes('madrid')||s.includes('santander'))return 'es';
+  if(s.includes('italie')||s.includes('mib')||s.includes('milan')||s.includes('ferrari')||s.includes('unicredit'))return 'it';
+  if(s.includes('suisse')||s.includes('swiss')||s.includes('zurich')||s.includes('nestl')||s.includes('novartis'))return 'ch';
+  if(s.includes('london')||s.includes('ftse')||s.includes('britain')||s.includes('uk')||s.includes('royaume-uni'))return 'gb';
+  if(s.includes('nikkei')||s.includes('japon')||s.includes('tokyo')||s.includes('toyota')||s.includes('japan'))return 'jp';
+  if(s.includes('nasdaq')||s.includes('s&p')||s.includes('wall street')||s.includes('nvidia')||s.includes('apple')||s.includes('fed ')||s.includes('américain'))return 'us';
+  if(s.includes('inde')||s.includes('india')||s.includes('sensex')||s.includes('mumbai'))return 'in';
+  if(s.includes('brésil')||s.includes('brazil')||s.includes('bovespa')||s.includes('petrobras'))return 'br';
+  return ac!=='all'?ac:'fr';
+}
+function detectTopic(t){
+  const s=t.toLowerCase();
+  if(s.includes('fusion')||s.includes('acqui')||s.includes('rachat')||s.includes('opa')||s.includes('merger'))return 'ma';
+  if(s.includes('banque')||s.includes('bank')||s.includes('taux')||s.includes('bce')||s.includes('fed')||s.includes('banquier'))return 'banque';
+  if(s.includes('énergi')||s.includes('pétrole')||s.includes('gaz')||s.includes('nucléaire')||s.includes('renouvelable'))return 'energie';
+  if(s.includes('résultat')||s.includes('bénéfice')||s.includes('chiffre')||s.includes('profit')||s.includes('revenus')||s.includes('trimestre'))return 'resultats';
+  if(s.includes('inflation')||s.includes('pib')||s.includes('croissance')||s.includes('récession')||s.includes('macro'))return 'macro';
+  if(s.includes(' ia ')||s.includes('intelligence artificielle')||s.includes('nvidia')||s.includes('tech')||s.includes('deepseek')||s.includes('microsoft')||s.includes('google'))return 'tech';
+  return 'bourse';
+}
+
+async function loadNews(){
   spin('rbtn1',true);
-  document.getElementById('newsList').innerHTML=`<div class="loader"><div class="sp"></div><div>Chargement…</div></div>`;
-  // Try real news via proxy
-  const q=ac==='cn'?'chine bourse finance china':ac==='us'?'wall street S&P500 finance':ac==='all'?'bourse europe finance actions':ac+' bourse finance';
-  const rss=`https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=fr&gl=FR&ceid=FR:fr`;
-  fetch(`https://corsproxy.io/?${encodeURIComponent(rss)}`,{signal:AbortSignal.timeout(7000)})
-    .then(r=>r.text()).then(txt=>{
-      const doc=new DOMParser().parseFromString(txt,'text/xml');
-      const items=Array.from(doc.querySelectorAll('item')).slice(0,20);
-      if(items.length<3)throw new Error('too few');
-      const detectC=t=>{
-        const s=t.toLowerCase();
-        if(s.includes('chine')||s.includes('china')||s.includes('pékin')||s.includes('beijing')||s.includes('byd')||s.includes('alibaba')||s.includes('huawei'))return 'cn';
-        if(s.includes('france')||s.includes('cac')||s.includes('paris')||s.includes('macron'))return 'fr';
-        if(s.includes('allemagne')||s.includes('dax')||s.includes('berlin')||s.includes('volkswagen'))return 'de';
-        if(s.includes('espagne')||s.includes('ibex')||s.includes('madrid'))return 'es';
-        if(s.includes('italie')||s.includes('mib')||s.includes('rome')||s.includes('milan'))return 'it';
-        if(s.includes('suisse')||s.includes('swiss')||s.includes('zurich')||s.includes('nestl'))return 'ch';
-        if(s.includes('london')||s.includes('ftse')||s.includes('britain')||s.includes('uk'))return 'gb';
-        if(s.includes('nikkei')||s.includes('japon')||s.includes('tokyo')||s.includes('toyota'))return 'jp';
-        if(s.includes('nasdaq')||s.includes('s&p')||s.includes('wall street')||s.includes('nvidia')||s.includes('apple'))return 'us';
-        if(s.includes('inde')||s.includes('india')||s.includes('sensex')||s.includes('mumbai'))return 'in';
-        return ac!=='all'?ac:'fr';
-      };
-      const detectT=t=>{
-        const s=t.toLowerCase();
-        if(s.includes('fusion')||s.includes('acqui')||s.includes('rachat')||s.includes('opa'))return 'ma';
-        if(s.includes('banque')||s.includes('bank')||s.includes('taux')||s.includes('bce')||s.includes('fed'))return 'banque';
-        if(s.includes('énergi')||s.includes('pétrole')||s.includes('gaz')||s.includes('nucléaire'))return 'energie';
-        if(s.includes('résultat')||s.includes('bénéfice')||s.includes('chiffre')||s.includes('profit'))return 'resultats';
-        if(s.includes('inflation')||s.includes('pib')||s.includes('croissance')||s.includes('récession'))return 'macro';
-        if(s.includes('ia ')||s.includes(' ai ')||s.includes('intel')||s.includes('nvidia')||s.includes('tech')||s.includes('deepseek'))return 'tech';
-        return 'bourse';
-      };
-      const realNews=items.map(item=>{
-        const title=(item.querySelector('title')?.textContent||'').replace(/<[^>]*>/g,'').replace(/ - [^-]+$/,'').trim();
-        const link=item.querySelector('link')?.textContent||'#';
-        const pubDate=item.querySelector('pubDate')?.textContent||'';
-        const src=item.querySelector('source')?.textContent||'Google News';
-        const c=detectC(title); 
-        return{title,description:'',link,pubDate,source:src,country:c,flag:FLAGS[c]||'🌍',topic:detectT(title),real:true};
-      }).filter(a=>a.title.length>10);
-      const demo=getNewsArticles();
-      const seen=new Set(realNews.map(a=>a.title.slice(0,30)));
-      allNews=[...realNews,...demo.filter(d=>!seen.has(d.title.slice(0,30)))];
-    })
-    .catch(()=>{allNews=getNewsArticles();})
-    .finally(()=>{spin('rbtn1',false);renderNews();});
+  document.getElementById('newsList').innerHTML=`<div class="loader"><div class="sp"></div><div>Chargement des vraies news…</div></div>`;
+  const q=QUERIES[ac]||QUERIES.all;
+  const url=`https://gnews.io/api/v4/search?q=${encodeURIComponent(q)}&lang=fr&country=any&max=20&apikey=${GNEWS_KEY}`;
+  try{
+    const r=await fetch(url,{signal:AbortSignal.timeout(10000)});
+    if(!r.ok)throw new Error('GNews error '+r.status);
+    const data=await r.json();
+    const articles=data.articles||[];
+    if(articles.length<2)throw new Error('too few');
+    allNews=articles.map(a=>({
+      title:a.title||'',
+      description:a.description||a.content||'',
+      link:a.url||'#',
+      pubDate:a.publishedAt||'',
+      source:a.source?.name||'GNews',
+      country:detectCountry((a.title||'')+(a.description||'')),
+      flag:'',
+      topic:detectTopic((a.title||'')+(a.description||'')),
+      real:true
+    })).filter(a=>a.title.length>5);
+    // Ajoute le drapeau
+    allNews.forEach(a=>{a.flag=FLAGS[a.country]||'🌍'});
+  }catch(e){
+    // Fallback données démo si erreur API
+    allNews=getNewsArticles();
+    console.warn('GNews fallback:',e.message);
+  }
+  spin('rbtn1',false);
+  renderNews();
 }
 
 function renderNews(){
@@ -479,23 +608,22 @@ document.getElementById('tfilter').addEventListener('click',e=>{
 // TAB 2 — SOURCES RÉGLEMENTAIRES
 // ══════════════════════════════════════════════════════
 function getRegArticles(){
-  const now=Date.now(), h=n=>new Date(now-n*3600000).toISOString();
   return {
     amf:[
-      {title:'AMF — Franchissement de seuil : BlackRock monte à 10% dans Hermès International',description:'Le géant américain de la gestion d\'actifs (10 000 Mds$ sous gestion) déclare avoir franchi à la hausse le seuil de 10% du capital d\'Hermès International, valorisé ~220 Mds€. Déclaration d\'intention : investissement purement passif, pas d\'ambition de prise de contrôle. BlackRock détient ces titres via ses fonds indiciels ETF. À surveiller : un franchissement ultérieur à 15% déclencherait une nouvelle obligation déclarative.',source:'AMF BDIF',country:'fr',pubDate:h(2),link:'https://bdif.amf-france.org/fr',type:'Franchissement seuil'},
-      {title:'AMF — OPA simplifiée déposée sur Eutelsat Communications à 3,50€/action',description:'Une offre publique d\'achat simplifiée a été déposée sur Eutelsat Communications par un consortium d\'actionnaires de référence. Le prix de 3,50€ représente une prime de 22% sur le dernier cours non affecté. Eutelsat, opérateur de satellites géostationnaires et opérateur de OneWeb (LEO), traverse une phase de transition stratégique coûteuse. L\'opération pourrait déboucher sur un retrait de la cote si le seuil de 90% est atteint.',source:'AMF BDIF',country:'fr',pubDate:h(4),link:'https://bdif.amf-france.org/fr',type:'OPA'},
-      {title:'AMF — Enquête ouverte : transactions suspectes détectées avant profit warning sur Soitec',description:'L\'AMF a ouvert une enquête formelle après avoir identifié des ventes massives d\'options put sur le titre Soitec dans les 48h précédant l\'annonce d\'un profit warning de -30% sur l\'exercice. Les transactions concernent plusieurs comptes domiciliés dans des juridictions étrangères. Le gel conservatoire des positions est en cours. Soitec, spécialiste des substrats semi-conducteurs pour téléphonie mobile, est coté sur Euronext Paris (SBF 120).',source:'AMF',country:'fr',pubDate:h(6),link:'https://www.amf-france.org',type:'Enquête'},
-      {title:'AMF — Franchissement seuil : Amundi Asset Management franchit les 5% dans Rexel',description:'Amundi, premier gestionnaire d\'actifs européen (2 000 Mds€ sous gestion), déclare avoir franchi à la hausse le seuil légal de 5% du capital et des droits de vote de Rexel SA, le distributeur mondial de matériel électrique (CAC Mid 60, ~6 Mds€ de capitalisation). La position a été constituée progressivement via ses fonds actifs et passifs. Rexel bénéficie actuellement du supercycle de la rénovation électrique et de l\'électrification des bâtiments en Europe.',source:'AMF BDIF',country:'fr',pubDate:h(8),link:'https://bdif.amf-france.org/fr',type:'Franchissement seuil'},
-      {title:'AMF — Sanction : 2,5 M€ d\'amende pour délit d\'initié sur un titre du SBF 120',description:'La Commission des sanctions de l\'AMF a prononcé une amende de 2,5 millions d\'euros à l\'encontre d\'un directeur financier d\'une société du SBF 120, reconnu coupable d\'avoir utilisé des informations privilégiées relatives à une acquisition imminente pour acquérir des options d\'achat. L\'identité de la personne sanctionnée sera publiée au Journal Officiel dans un délai de 10 jours. La décision est susceptible de recours devant la Cour d\'appel de Paris.',source:'AMF',country:'fr',pubDate:h(12),link:'https://www.amf-france.org',type:'Sanction'},
-      {title:'AMF — Avis Euronext : scission de Vivendi SE en 4 entités distinctes cotées',description:'Euronext Paris publie les conditions techniques et le calendrier de la scission de Vivendi SE en quatre sociétés indépendantes : Canal+ (cotation à Londres), Havas (Amsterdam), Louis Hachette Group (Paris) et Vivendi résiduel. Les actionnaires actuels de Vivendi recevront des actions de chaque entité au prorata de leur détention. Première date de cotation effective : 16 décembre sur leurs marchés respectifs. Opération de spin-off sans précédent en termes de complexité réglementaire cross-border.',source:'AMF / Euronext',country:'fr',pubDate:h(14),link:'https://www.euronext.com',type:'Avis marché'},
+      {title:'AMF — Franchissement de seuil : BlackRock monte à 10% dans Hermès International',description:'Le géant américain de la gestion d\'actifs (10 000 Mds$ sous gestion) déclare avoir franchi à la hausse le seuil de 10% du capital d\'Hermès International, valorisé ~220 Mds€. Déclaration d\'intention : investissement purement passif, pas d\'ambition de prise de contrôle. BlackRock détient ces titres via ses fonds indiciels ETF. À surveiller : un franchissement ultérieur à 15% déclencherait une nouvelle obligation déclarative.',source:'AMF BDIF',country:'fr',pubDate:'2026-02-27T09:15:00Z',link:'https://bdif.amf-france.org/fr',type:'Franchissement seuil'},
+      {title:'AMF — OPA simplifiée déposée sur Eutelsat Communications à 3,50€/action',description:'Une offre publique d\'achat simplifiée a été déposée sur Eutelsat Communications par un consortium d\'actionnaires de référence. Le prix de 3,50€ représente une prime de 22% sur le dernier cours non affecté. L\'opération pourrait déboucher sur un retrait de la cote si le seuil de 90% est atteint.',source:'AMF BDIF',country:'fr',pubDate:'2026-02-25T14:30:00Z',link:'https://bdif.amf-france.org/fr',type:'OPA'},
+      {title:'AMF — Enquête ouverte : transactions suspectes détectées avant profit warning sur Soitec',description:'L\'AMF a ouvert une enquête formelle après avoir identifié des ventes massives d\'options put sur le titre Soitec dans les 48h précédant l\'annonce d\'un profit warning de -30%. Les transactions concernent plusieurs comptes domiciliés dans des juridictions étrangères.',source:'AMF',country:'fr',pubDate:'2026-02-24T11:00:00Z',link:'https://www.amf-france.org',type:'Enquête'},
+      {title:'AMF — Franchissement seuil : Amundi Asset Management franchit les 5% dans Rexel',description:'Amundi, premier gestionnaire d\'actifs européen (2 000 Mds€ sous gestion), déclare avoir franchi à la hausse le seuil légal de 5% du capital et des droits de vote de Rexel SA. La position a été constituée progressivement via ses fonds actifs et passifs.',source:'AMF BDIF',country:'fr',pubDate:'2026-02-21T08:45:00Z',link:'https://bdif.amf-france.org/fr',type:'Franchissement seuil'},
+      {title:'AMF — Sanction : 2,5 M€ d\'amende pour délit d\'initié sur un titre du SBF 120',description:'La Commission des sanctions de l\'AMF a prononcé une amende de 2,5 millions d\'euros à l\'encontre d\'un directeur financier reconnu coupable d\'avoir utilisé des informations privilégiées relatives à une acquisition imminente.',source:'AMF',country:'fr',pubDate:'2026-02-18T16:00:00Z',link:'https://www.amf-france.org',type:'Sanction'},
+      {title:'AMF — Avis Euronext : scission de Vivendi SE en 4 entités distinctes cotées',description:'Euronext Paris publie les conditions techniques de la scission de Vivendi SE en quatre sociétés indépendantes : Canal+ (Londres), Havas (Amsterdam), Louis Hachette Group (Paris) et Vivendi résiduel.',source:'AMF / Euronext',country:'fr',pubDate:'2026-02-14T10:00:00Z',link:'https://www.euronext.com',type:'Avis marché'},
     ],
     sec:[
-      {title:'SEC 8-K — Apple Inc. : T4 FY2024 supérieur aux attentes, guidance Q1 relevée',description:'Apple dépose son 8-K de résultats trimestriels. BPA ajusté de 2,18$ vs 2,11$ attendus par le consensus Wall Street. Chiffre d\'affaires à 124,3 Mds$ (+6% YoY). Division Services en hausse de 17% à 26,3 Mds$ — marge de 74%, moteur de la rentabilité. Ventes iPhone en baisse de 2% en Chine (pression Huawei) compensées par la croissance en Inde (+34%). Guidance Q1 FY2025 : CA entre 125 et 128 Mds$, supérieure aux attentes.',source:'SEC EDGAR',country:'us',pubDate:h(1),link:'https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company=apple&type=8-K',type:'8-K Résultats'},
-      {title:'SEC 13-D — Elliott Management déclare 8,5% dans Phillips 66, demande scission',description:'Le fonds activiste new-yorkais Elliott Management (65 Mds$ d\'actifs) dépose un formulaire 13-D révélant une participation de 8,5% dans Phillips 66, raffineur et distributeur énergétique américain (~45 Mds$ de capitalisation). Elliott demande la cession des actifs de distribution midstream, jugés sous-valorisés, et un programme de rachat d\'actions de 15 Mds$. Le fonds estime que la somme des parties vaut 80$ de plus par action que le cours actuel. Le PDG de Phillips 66 a répondu ouvertement favorablement à un dialogue.',source:'SEC EDGAR',country:'us',pubDate:h(3),link:'https://efts.sec.gov/LATEST/search-index?q=%2213-D%22&dateRange=custom&startdt=2024-01-01',type:'13-D Activiste'},
-      {title:'SEC 8-K — NVIDIA : contrat gouvernemental de 4 Mds$ pour infrastructure IA nationale',description:'NVIDIA Corporation dépose un 8-K pour événement significatif (Item 1.01 — accord matériel). Le contrat porte sur la fourniture de 100 000 processeurs H100 et H200 à un gouvernement membre du G7 dans le cadre d\'un programme d\'infrastructure IA souveraine sur 3 ans. Le nom du gouvernement acheteur n\'est pas divulgué. Ce contrat représente ~5% du chiffre d\'affaires annuel de NVIDIA et consolide sa position dominante dans les supercalculateurs gouvernementaux face à AMD.',source:'SEC EDGAR',country:'us',pubDate:h(5),link:'https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company=nvidia&type=8-K',type:'8-K Contrat'},
-      {title:'SEC Form 4 — Mark Zuckerberg cède 500 M$ d\'actions Meta Platforms',description:'Mark Zuckerberg, PDG et fondateur de Meta Platforms, déclare la vente de 2,7 millions d\'actions ordinaires de classe A entre 490$ et 510$ par action, soit ~500 M$ de cessions. Ces ventes s\'effectuent dans le cadre d\'un plan de vente programmatique Rule 10b5-1 adopté en novembre 2023, ce qui exclut toute qualification en délit d\'initié. Zuckerberg conserve ~350 milliards de dollars d\'actions Meta via des actions de classe B (10 voix chacune). Les fonds servent à financer ses projets philanthropiques via la Chan Zuckerberg Initiative.',source:'SEC EDGAR',country:'us',pubDate:h(7),link:'https://efts.sec.gov/LATEST/search-index?q=%22Form+4%22',type:'Form 4 Insider'},
-      {title:'SEC 13-F — Berkshire Hathaway Q4 : position cachée de 6,7 Mds$ dans Chubb révélée',description:'Le dépôt trimestriel 13-F de Berkshire Hathaway révèle une participation de 6,7 milliards de dollars dans Chubb Limited, le plus grand assureur dommages coté au monde. La position avait été construite discrètement sur 12 mois grâce à une autorisation exceptionnelle de la SEC de ne pas la divulguer (pour ne pas faire monter le cours). Warren Buffett avait fait allusion à une "position significative dans un assureur" lors de son discours annuel. Chubb bénéficie de la hausse des primes d\'assurance dans un contexte de catastrophes climatiques croissantes.',source:'SEC EDGAR',country:'us',pubDate:h(9),link:'https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company=berkshire&type=13-F',type:'13-F Positions'},
-      {title:'SEC S-1 — IPO Klarna : le géant suédois du BNPL vise le NYSE à 15-20 Mds$',description:'Klarna Bank AB dépose son prospectus d\'introduction en bourse (S-1) auprès de la SEC pour une cotation sur le NYSE. La fintech suédoise du "Buy Now Pay Later" revendique 150 millions d\'utilisateurs actifs dans 45 pays et un GMV de 92 Mds$ en 2024. La valorisation cible de 15 à 20 Mds$ est en nette retrait par rapport aux 45 Mds$ de la levée de 2021 — reflet de la normalisation des valorisations fintech. Klarna a atteint la rentabilité opérationnelle au S2 2023 après 3 ans de pertes. Goldman Sachs et Morgan Stanley orchestrent l\'opération.',source:'SEC EDGAR',country:'us',pubDate:h(11),link:'https://efts.sec.gov/LATEST/search-index?q=%22S-1%22&dateRange=custom',type:'S-1 IPO'},
+      {title:'SEC 8-K — Apple Inc. : T4 FY2024 supérieur aux attentes, guidance Q1 relevée',description:'Apple dépose son 8-K de résultats trimestriels. BPA ajusté de 2,18$ vs 2,11$ attendus. Chiffre d\'affaires à 124,3 Mds$ (+6% YoY). Division Services en hausse de 17% à 26,3 Mds$ — marge de 74%. Guidance Q1 FY2025 entre 125 et 128 Mds$.',source:'SEC EDGAR',country:'us',pubDate:'2026-02-28T22:00:00Z',link:'https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company=apple&type=8-K',type:'8-K Résultats'},
+      {title:'SEC 13-D — Elliott Management déclare 8,5% dans Phillips 66, demande scission',description:'Le fonds activiste Elliott Management dépose un 13-D révélant 8,5% dans Phillips 66. Il demande la cession des actifs midstream et un rachat d\'actions de 15 Mds$. Le fonds estime un potentiel de 80$ supplémentaires par action.',source:'SEC EDGAR',country:'us',pubDate:'2026-02-26T19:30:00Z',link:'https://efts.sec.gov/LATEST/search-index?q=%2213-D%22',type:'13-D Activiste'},
+      {title:'SEC 8-K — NVIDIA : contrat gouvernemental de 4 Mds$ pour infrastructure IA nationale',description:'NVIDIA dépose un 8-K pour un accord matériel portant sur la fourniture de 100 000 GPU H100/H200 à un gouvernement du G7 pour un programme d\'IA souveraine sur 3 ans.',source:'SEC EDGAR',country:'us',pubDate:'2026-02-25T15:00:00Z',link:'https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company=nvidia&type=8-K',type:'8-K Contrat'},
+      {title:'SEC Form 4 — Mark Zuckerberg cède 500 M$ d\'actions Meta Platforms',description:'Zuckerberg cède 2,7 millions d\'actions entre 490$ et 510$ via un plan 10b5-1 prédéfini. Les fonds financent la Chan Zuckerberg Initiative. Il conserve ~350 Mds$ via ses actions de classe B.',source:'SEC EDGAR',country:'us',pubDate:'2026-02-24T20:00:00Z',link:'https://efts.sec.gov/LATEST/search-index?q=%22Form+4%22',type:'Form 4 Insider'},
+      {title:'SEC 13-F — Berkshire Hathaway Q4 : position de 6,7 Mds$ dans Chubb révélée',description:'Le 13-F de Berkshire révèle une participation de 6,7 Mds$ dans l\'assureur Chubb, construite discrètement sur 12 mois avec autorisation SEC de confidentialité temporaire.',source:'SEC EDGAR',country:'us',pubDate:'2026-02-15T17:00:00Z',link:'https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company=berkshire&type=13-F',type:'13-F Positions'},
+      {title:'SEC S-1 — IPO Klarna : la fintech suédoise BNPL vise le NYSE à 15-20 Mds$',description:'Klarna dépose son S-1 pour le NYSE. 150 millions d\'utilisateurs, GMV de 92 Mds$ en 2024. Valorisation en retrait vs 45 Mds$ en 2021. Goldman Sachs et Morgan Stanley orchestrent l\'opération.',source:'SEC EDGAR',country:'us',pubDate:'2026-02-10T14:00:00Z',link:'https://efts.sec.gov/LATEST/search-index?q=%22S-1%22',type:'S-1 IPO'},
     ]
   };
 }
