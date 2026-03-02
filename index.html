@@ -536,6 +536,43 @@ function detectTopic(t){
   return 'bourse';
 }
 
+// ── Détection langue & traduction MyMemory ────────────
+const FR_SOURCES=['Les Échos','Le Monde Éco','BFM Business','La Tribune'];
+
+function needsTranslation(article){
+  // Sources françaises → pas besoin de traduire
+  if(FR_SOURCES.includes(article.source))return false;
+  // Détection basique : présence de mots anglais courants
+  const s=(article.title+' '+(article.description||'')).toLowerCase();
+  const engWords=['the ','is ','are ','was ',' on ',' in ',' of ',' to ',' for ',' as ',' at ',' by ',' an ','and ','with ','from ','that ','this ','has ','have '];
+  const matches=engWords.filter(w=>s.includes(w));
+  return matches.length>=3;
+}
+
+async function translate(text, srcLang='en'){
+  if(!text||text.length<5)return text;
+  try{
+    const url=`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text.slice(0,500))}&langpair=${srcLang}|fr`;
+    const r=await fetch(url,{signal:AbortSignal.timeout?AbortSignal.timeout(5000):undefined});
+    if(!r.ok)return text;
+    const data=await r.json();
+    const t=data.responseData?.translatedText||text;
+    // MyMemory retourne parfois le texte original si non traduit
+    return (t&&t!==text&&t.length>5)?t:text;
+  }catch(e){return text;}
+}
+
+async function translateArticle(article){
+  if(!needsTranslation(article))return article;
+  try{
+    const [translatedTitle, translatedDesc]=await Promise.all([
+      translate(article.title),
+      article.description?translate(article.description):Promise.resolve('')
+    ]);
+    return {...article, title:translatedTitle, description:translatedDesc, translated:true};
+  }catch(e){return article;}
+}
+
 async function fetchRSS(src){
   try{
     const url=RSS2JSON+encodeURIComponent(src.url)+'&count=10';
@@ -558,7 +595,8 @@ async function fetchRSS(src){
         country:c,
         flag:FLAGS[c]||'🌍',
         topic:detectTopic(title+' '+desc),
-        real:true
+        real:true,
+        translated:false
       };
     }).filter(a=>a.title.length>10);
   }catch(e){return [];}
@@ -566,7 +604,7 @@ async function fetchRSS(src){
 
 async function loadNews(){
   spin('rbtn1',true);
-  document.getElementById('newsList').innerHTML=`<div class="loader"><div class="sp"></div><div>Chargement des flux RSS en direct…</div></div>`;
+  document.getElementById('newsList').innerHTML=`<div class="loader"><div class="sp"></div><div>Chargement des flux RSS…</div></div>`;
 
   // Sélection des sources selon le pays actif
   let sources=RSS_SOURCES;
@@ -574,30 +612,53 @@ async function loadNews(){
   else if(ac==='gb') sources=RSS_SOURCES.filter(s=>['gb','us'].includes(s.country));
   else if(ac==='de') sources=RSS_SOURCES.filter(s=>['de','us'].includes(s.country));
   else if(['cn','jp','in','br','us'].includes(ac)) sources=RSS_SOURCES.filter(s=>['us','gb'].includes(s.country));
-  else sources=RSS_SOURCES; // all = toutes les sources
+  else sources=RSS_SOURCES;
 
   // Charge toutes les sources en parallèle
   const results=await Promise.allSettled(sources.map(s=>fetchRSS(s)));
   let fetched=results.flatMap(r=>r.status==='fulfilled'?r.value:[]);
 
   if(fetched.length<3){
-    // Fallback données démo si aucune source ne répond
     allNews=getNewsArticles();
     console.warn('RSS fallback: toutes les sources ont échoué');
-  } else {
-    // Déduplique et trie par date
-    const seen=new Set();
-    fetched=fetched.filter(a=>{
-      const k=a.title.slice(0,40);
-      if(seen.has(k))return false;
-      seen.add(k);return true;
-    });
-    fetched.sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
-    allNews=fetched;
+    spin('rbtn1',false);
+    renderNews();
+    return;
   }
 
+  // Déduplique et trie par date
+  const seen=new Set();
+  fetched=fetched.filter(a=>{
+    const k=a.title.slice(0,40);
+    if(seen.has(k))return false;
+    seen.add(k);return true;
+  });
+  fetched.sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
+
+  // Affiche d'abord les articles sans traduction
+  allNews=fetched;
   spin('rbtn1',false);
   renderNews();
+
+  // Traduit en arrière-plan les articles anglais (max 15 pour ne pas saturer l'API)
+  document.getElementById('newsList').insertAdjacentHTML('afterbegin',
+    `<div id="transBar" style="padding:8px 16px;font-size:11px;color:var(--muted);background:var(--blue-bg);border-bottom:1px solid var(--border);font-style:italic">
+      🔄 Traduction en cours…
+    </div>`);
+
+  const toTranslate=fetched.filter(a=>needsTranslation(a)).slice(0,15);
+  // Traduit par batch de 3 pour ne pas surcharger
+  for(let i=0;i<toTranslate.length;i+=3){
+    const batch=toTranslate.slice(i,i+3);
+    const translated=await Promise.all(batch.map(a=>translateArticle(a)));
+    translated.forEach(t=>{
+      const idx=allNews.findIndex(a=>a.title===t.title||a.link===t.link);
+      if(idx>=0)allNews[idx]=t;
+    });
+    renderNews();
+    await new Promise(r=>setTimeout(r,300)); // Petite pause entre batches
+  }
+  document.getElementById('transBar')?.remove();
 }
 
 function renderNews(){
@@ -616,6 +677,7 @@ function renderNews(){
         ${isFresh(a.pubDate)?'<span class="tag new">🔥 Récent</span>':''}
         ${a.topic?`<span class="tag ${a.country==='cn'?'cn':'tp'}">${a.topic}</span>`:''}
         ${a.real?'<span class="tag new">🔴 Live</span>':''}
+        ${a.translated?'<span class="tag" style="font-size:9px;color:var(--muted)">🇫🇷 traduit</span>':''}
         ${a.link&&a.link!='#'?'<span class="tag" style="margin-left:auto;color:var(--accent);border-color:var(--accent)">Lire l\'article →</span>':''}
       </div>
     </a>`).join('');
