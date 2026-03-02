@@ -545,75 +545,55 @@ function detectTopic(t){
   return 'bourse';
 }
 
-// ── Traduction & Résumé via Claude API ────────────────
+// ── Traduction DeepL Free ──────────────────────────────
 const FR_SOURCES=['Les Échos','La Tribune','BFM Business','AMF France','Euronext'];
+const translateCache={};
 
 function needsTranslation(article){
   if(FR_SOURCES.includes(article.source))return false;
   if(article.lang==='fr')return false;
   const s=(article.title+' '+(article.description||'')).toLowerCase();
-  const engWords=['the ','is ','are ','was ',' on ',' in ',' of ',' to ',' for ',' as ',' at ',' by ',' an ','and ','with ','from '];
+  const engWords=['the ','is ','are ','was ',' on ',' in ',' of ',' to ',' for ',' as ',' at ',' by ','and ','with ','from '];
   return engWords.filter(w=>s.includes(w)).length>=3;
 }
 
-// Cache pour éviter de retraduire les mêmes articles
-const translateCache={};
-
-async function claudeTranslate(article){
-  const cacheKey=article.link||article.title.slice(0,50);
-  if(translateCache[cacheKey])return translateCache[cacheKey];
-
-  const prompt=`Tu es un expert en finance de marché. Voici un article financier en anglais.
-
-SOURCE: ${article.source}
-TITRE: ${article.title}
-DESCRIPTION: ${article.description||'(pas de description)'}
-
-Réponds UNIQUEMENT avec un JSON valide (sans markdown, sans backticks) :
-{
-  "titre": "traduction française précise et professionnelle du titre",
-  "resume": "résumé en français de 2-3 phrases maximum, avec les chiffres clés, les entreprises concernées et l'impact marché. Ton neutre, factuel, style Bloomberg français."
-}`;
-
+async function deepLTranslate(text){
+  if(!text||text.length<5)return text;
+  // Filtre les messages d'erreur MyMemory ou autres parasites
+  if(text.includes('MYMEMORY WARNING')||text.includes('YOU USED ALL'))return '';
   try{
-    const response=await fetch('https://api.anthropic.com/v1/messages',{
+    const r=await fetch('https://api-free.deepl.com/v2/translate',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:300,
-        messages:[{role:'user',content:prompt}]
-      })
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body:`auth_key=YOUR_DEEPL_KEY&text=${encodeURIComponent(text.slice(0,500))}&target_lang=FR&source_lang=EN`
     });
-    const data=await response.json();
-    const text=data.content?.[0]?.text||'';
-    const parsed=JSON.parse(text.replace(/```json|```/g,'').trim());
-    const result={
-      ...article,
-      title:parsed.titre||article.title,
-      description:parsed.resume||article.description,
-      translated:true
-    };
-    translateCache[cacheKey]=result;
-    return result;
-  }catch(e){
-    // Fallback MyMemory si Claude échoue
-    return myMemoryTranslate(article);
-  }
-}
-
-async function myMemoryTranslate(article){
-  try{
-    const r=await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(article.title.slice(0,300))}&langpair=en|fr`);
+    if(!r.ok)throw new Error('DeepL '+r.status);
     const data=await r.json();
-    const t=data.responseData?.translatedText;
-    return {...article, title:(t&&t!==article.title)?t:article.title, translated:true};
-  }catch(e){return article;}
+    return data.translations?.[0]?.text||text;
+  }catch(e){
+    // Fallback : traduction Google Translate non officielle
+    try{
+      const url=`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=fr&dt=t&q=${encodeURIComponent(text.slice(0,500))}`;
+      const r2=await fetch(url);
+      const data2=await r2.json();
+      return data2?.[0]?.map(x=>x?.[0]).filter(Boolean).join('')||text;
+    }catch(e2){return text;}
+  }
 }
 
 async function translateArticle(article){
   if(!needsTranslation(article))return article;
-  return claudeTranslate(article);
+  const cacheKey=article.link||article.title.slice(0,50);
+  if(translateCache[cacheKey])return translateCache[cacheKey];
+  try{
+    const [titre,resume]=await Promise.all([
+      deepLTranslate(article.title),
+      article.description?deepLTranslate(article.description):Promise.resolve('')
+    ]);
+    const result={...article,title:titre||article.title,description:resume||article.description,translated:true};
+    translateCache[cacheKey]=result;
+    return result;
+  }catch(e){return article;}
 }
 
 async function fetchRSS(src){
@@ -641,7 +621,14 @@ async function fetchRSS(src){
         real:true,
         translated:false
       };
-    }).filter(a=>a.title.length>10);
+    }).filter(a=>
+      a.title.length>10 &&
+      !a.title.includes('MYMEMORY') &&
+      !a.title.includes('YOU USED ALL') &&
+      !a.title.includes('WARNING:') &&
+      !a.title.includes('Error') &&
+      !a.title.toUpperCase().startsWith('MYMEMORY')
+    );
   }catch(e){return [];}
 }
 
