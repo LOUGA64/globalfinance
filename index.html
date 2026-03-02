@@ -490,29 +490,30 @@ function getNewsArticles(){
   ];
 }
 
-const GNEWS_KEY='0ab023e5b1308545b7544ff10514c30f';
+// ══════════════════════════════════════════════════════
+// SOURCES RSS RÉELLES — rss2json.com (gratuit, pas de clé, fonctionne sur GitHub Pages)
+// ══════════════════════════════════════════════════════
+const RSS_SOURCES = [
+  // France
+  {url:'https://www.lesechos.fr/rss/rss_finance.xml',         source:'Les Échos',        country:'fr'},
+  {url:'https://www.lemonde.fr/economie/rss_full.xml',        source:'Le Monde Éco',     country:'fr'},
+  {url:'https://bfmbusiness.bfmtv.com/rss/info/flux-rss/flux-toutes-les-actualites/', source:'BFM Business', country:'fr'},
+  {url:'https://www.latribune.fr/rss.html',                   source:'La Tribune',       country:'fr'},
+  // International
+  {url:'https://feeds.reuters.com/reuters/businessNews',      source:'Reuters',          country:'us'},
+  {url:'https://feeds.reuters.com/reuters/companyNews',       source:'Reuters Companies',country:'us'},
+  {url:'https://www.ft.com/rss/home/europe',                  source:'Financial Times',  country:'gb'},
+  {url:'https://feeds.bloomberg.com/markets/news.rss',        source:'Bloomberg',        country:'us'},
+  {url:'https://www.handelsblatt.com/rss',                    source:'Handelsblatt',     country:'de'},
+  {url:'https://www.nikkei.com/rss/index.xml',                source:'Nikkei Asia',      country:'jp'},
+];
 
-const QUERIES={
-  all:'bourse finance marchés actions europe',
-  fr:'CAC40 bourse France actions',
-  de:'DAX bourse Allemagne actions',
-  es:'IBEX bourse Espagne',
-  it:'FTSE MIB bourse Italie',
-  nl:'AEX bourse Pays-Bas',
-  be:'BEL20 bourse Belgique',
-  ch:'SMI bourse Suisse',
-  gb:'FTSE bourse Royaume-Uni',
-  cn:'bourse Chine Shanghai finance',
-  us:'Wall Street S&P500 Nasdaq',
-  jp:'Nikkei bourse Japon',
-  in:'Sensex bourse Inde',
-  br:'Bovespa bourse Brésil',
-};
+const RSS2JSON = 'https://api.rss2json.com/v1/api.json?rss_url=';
 
 function detectCountry(t){
   const s=t.toLowerCase();
   if(s.includes('chine')||s.includes('china')||s.includes('pékin')||s.includes('beijing')||s.includes('byd')||s.includes('alibaba')||s.includes('huawei')||s.includes('shanghai'))return 'cn';
-  if(s.includes('france')||s.includes('cac')||s.includes('macron')||s.includes('paris bourse'))return 'fr';
+  if(s.includes('france')||s.includes('cac')||s.includes('macron')||s.includes('paris bourse')||s.includes('elysée'))return 'fr';
   if(s.includes('allemagne')||s.includes('dax')||s.includes('berlin')||s.includes('volkswagen')||s.includes('deutsche'))return 'de';
   if(s.includes('espagne')||s.includes('ibex')||s.includes('madrid')||s.includes('santander'))return 'es';
   if(s.includes('italie')||s.includes('mib')||s.includes('milan')||s.includes('ferrari')||s.includes('unicredit'))return 'it';
@@ -522,7 +523,7 @@ function detectCountry(t){
   if(s.includes('nasdaq')||s.includes('s&p')||s.includes('wall street')||s.includes('nvidia')||s.includes('apple')||s.includes('fed ')||s.includes('américain'))return 'us';
   if(s.includes('inde')||s.includes('india')||s.includes('sensex')||s.includes('mumbai'))return 'in';
   if(s.includes('brésil')||s.includes('brazil')||s.includes('bovespa')||s.includes('petrobras'))return 'br';
-  return ac!=='all'?ac:'fr';
+  return 'fr';
 }
 function detectTopic(t){
   const s=t.toLowerCase();
@@ -535,37 +536,66 @@ function detectTopic(t){
   return 'bourse';
 }
 
-async function loadNews(){
-  spin('rbtn1',true);
-  document.getElementById('newsList').innerHTML=`<div class="loader"><div class="sp"></div><div>Chargement des vraies news…</div></div>`;
-  const q=QUERIES[ac]||QUERIES.all;
-  const url=`https://gnews.io/api/v4/search?q=${encodeURIComponent(q)}&lang=fr&country=any&max=20&apikey=${GNEWS_KEY}`;
-  const controller=new AbortController();
-  const timer=setTimeout(()=>controller.abort(),10000);
+async function fetchRSS(src){
   try{
+    const url=RSS2JSON+encodeURIComponent(src.url)+'&count=10';
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),8000);
     const r=await fetch(url,{signal:controller.signal});
     clearTimeout(timer);
-    if(!r.ok)throw new Error('GNews '+r.status);
+    if(!r.ok)return [];
     const data=await r.json();
-    const articles=data.articles||[];
-    if(articles.length<2)throw new Error('too few');
-    allNews=articles.map(a=>({
-      title:a.title||'',
-      description:a.description||a.content||'',
-      link:a.url||'#',
-      pubDate:a.publishedAt||'',
-      source:a.source?.name||'GNews',
-      country:detectCountry((a.title||'')+(a.description||'')),
-      flag:'',
-      topic:detectTopic((a.title||'')+(a.description||'')),
-      real:true
-    })).filter(a=>a.title.length>5);
-    allNews.forEach(a=>{a.flag=FLAGS[a.country]||'🌍'});
-  }catch(e){
-    clearTimeout(timer);
+    if(data.status!=='ok')return [];
+    return (data.items||[]).map(item=>{
+      const title=(item.title||'').replace(/<[^>]*>/g,'').trim();
+      const desc=(item.description||item.content||'').replace(/<[^>]*>/g,'').trim().slice(0,400);
+      const c=detectCountry(title+' '+desc) || src.country;
+      return {
+        title, description:desc,
+        link:item.link||'#',
+        pubDate:item.pubDate||'',
+        source:src.source,
+        country:c,
+        flag:FLAGS[c]||'🌍',
+        topic:detectTopic(title+' '+desc),
+        real:true
+      };
+    }).filter(a=>a.title.length>10);
+  }catch(e){return [];}
+}
+
+async function loadNews(){
+  spin('rbtn1',true);
+  document.getElementById('newsList').innerHTML=`<div class="loader"><div class="sp"></div><div>Chargement des flux RSS en direct…</div></div>`;
+
+  // Sélection des sources selon le pays actif
+  let sources=RSS_SOURCES;
+  if(ac==='fr') sources=RSS_SOURCES.filter(s=>s.country==='fr');
+  else if(ac==='gb') sources=RSS_SOURCES.filter(s=>['gb','us'].includes(s.country));
+  else if(ac==='de') sources=RSS_SOURCES.filter(s=>['de','us'].includes(s.country));
+  else if(['cn','jp','in','br','us'].includes(ac)) sources=RSS_SOURCES.filter(s=>['us','gb'].includes(s.country));
+  else sources=RSS_SOURCES; // all = toutes les sources
+
+  // Charge toutes les sources en parallèle
+  const results=await Promise.allSettled(sources.map(s=>fetchRSS(s)));
+  let fetched=results.flatMap(r=>r.status==='fulfilled'?r.value:[]);
+
+  if(fetched.length<3){
+    // Fallback données démo si aucune source ne répond
     allNews=getNewsArticles();
-    console.warn('GNews fallback:',e.message);
+    console.warn('RSS fallback: toutes les sources ont échoué');
+  } else {
+    // Déduplique et trie par date
+    const seen=new Set();
+    fetched=fetched.filter(a=>{
+      const k=a.title.slice(0,40);
+      if(seen.has(k))return false;
+      seen.add(k);return true;
+    });
+    fetched.sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
+    allNews=fetched;
   }
+
   spin('rbtn1',false);
   renderNews();
 }
