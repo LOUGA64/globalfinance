@@ -161,7 +161,8 @@
       <div>
         <div class="logo">Global<span>Finance</span></div>
         <div class="logo-sub">Veille boursière mondiale</div>
-        <div style="font-size:9px;color:var(--muted);font-family:'DM Sans',sans-serif;margin-top:2px">par Hervé · <span id="majDate"></span></div>
+        <div style="font-size:12px;color:var(--accent);font-family:'Playfair Display',serif;font-style:italic;margin-top:4px;font-weight:600">Heit a casa · per Hervé</div>
+        <div style="font-size:10px;color:var(--muted);font-family:'DM Sans',sans-serif;margin-top:2px">Actualisé le <span id="majDate"></span> à <span id="majHeure"></span></div>
       </div>
       <div class="header-right">
         <div class="date-main" id="dateEl"></div>
@@ -305,9 +306,15 @@ function updateDate(){
   document.getElementById('dateEl').innerHTML=
     n.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})+'<br>'+
     n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-  // Mise à jour dynamique : "mis à jour le X mars 2026"
   const mois=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
-  document.getElementById('majDate').textContent=`mis à jour ${n.getDate()} ${mois[n.getMonth()]} ${n.getFullYear()}`;
+  document.getElementById('majDate').textContent=`${n.getDate()} ${mois[n.getMonth()]} ${n.getFullYear()}`;
+  document.getElementById('majHeure').textContent=n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+}
+function updateRefreshTime(){
+  const n=new Date();
+  const mois=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  document.getElementById('majDate').textContent=`${n.getDate()} ${mois[n.getMonth()]} ${n.getFullYear()}`;
+  document.getElementById('majHeure').textContent=n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
 }
 updateDate(); setInterval(updateDate,30000);
 function relTime(d){
@@ -677,8 +684,7 @@ async function loadNews(){
   allNews=fetched;
   spin('rbtn1',false);
   renderNews();
-
-  // Traduit en arrière-plan les articles anglais (max 15 pour ne pas saturer l'API)
+  updateRefreshTime(); les articles anglais (max 15 pour ne pas saturer l'API)
   document.getElementById('newsList').insertAdjacentHTML('afterbegin',
     `<div id="transBar" style="padding:8px 16px;font-size:11px;color:var(--muted);background:var(--blue-bg);border-bottom:1px solid var(--border);font-style:italic">
       🔄 Traduction en cours…
@@ -699,6 +705,21 @@ async function loadNews(){
   document.getElementById('transBar')?.remove();
 }
 
+function formatPubDate(d){
+  if(!d)return '';
+  const dt=new Date(d);
+  if(isNaN(dt))return '';
+  const jours=['dim.','lun.','mar.','mer.','jeu.','ven.','sam.'];
+  const mois=['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
+  const jour=jours[dt.getDay()];
+  const date=`${dt.getDate()} ${mois[dt.getMonth()]}`;
+  const heure=dt.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  // Si aujourd'hui, affiche juste l'heure
+  const today=new Date();
+  if(dt.toDateString()===today.toDateString())return `aujourd'hui ${heure}`;
+  return `${jour} ${date} · ${heure}`;
+}
+
 function renderNews(){
   const f=allNews.filter(a=>(ac==='all'||a.country===ac)&&(at==='all'||a.topic===at));
   document.getElementById('artCnt').textContent=`${f.length} articles`;
@@ -708,14 +729,19 @@ function renderNews(){
   if(!f.length){document.getElementById('newsList').innerHTML=`<div class="loader">🔍 Aucun article</div>`;return;}
   document.getElementById('newsList').innerHTML=f.map((a,i)=>`
     <a class="card${a.country==='cn'?' cn':''}" href="${a.link&&a.link!='#'?a.link:'javascript:void(0)'}" ${a.link&&a.link!='#'?'target="_blank" rel="noopener"':''} style="animation-delay:${i*.03}s">
-      <div class="cm"><span class="cs">${a.source}</span><span class="cd"></span><span class="ct">${relTime(a.pubDate)}</span><span>${a.flag||'🌍'}</span></div>
+      <div class="cm">
+        <span class="cs">${a.source}</span>
+        <span class="cd"></span>
+        <span class="ct">${formatPubDate(a.pubDate)}</span>
+        <span>${a.flag||'🌍'}</span>
+      </div>
       <div class="ctitle">${a.title}</div>
       ${a.description?`<div class="cdesc">${a.description}</div>`:''}
       <div class="ctags">
         ${isFresh(a.pubDate)?'<span class="tag new">🔥 Récent</span>':''}
         ${a.topic?`<span class="tag ${a.country==='cn'?'cn':'tp'}">${a.topic}</span>`:''}
         ${a.real?'<span class="tag new">🔴 Live</span>':''}
-        ${a.translated?'<span class="tag" style="font-size:9px;color:var(--purple);border-color:var(--purple);background:var(--purple-bg)">✨ Claude</span>':''}
+        ${a.translated?'<span class="tag" style="font-size:9px;color:var(--purple);border-color:var(--purple);background:var(--purple-bg)">✨ traduit</span>':''}
         ${a.link&&a.link!='#'?'<span class="tag" style="margin-left:auto;color:var(--accent);border-color:var(--accent)">Lire l\'article →</span>':''}
       </div>
     </a>`).join('');
