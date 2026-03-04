@@ -369,166 +369,6 @@ function isFresh(d){return d&&(Date.now()-new Date(d))<21600000;}
 function spin(id,on){document.getElementById(id)?.classList[on?'add':'remove']('spin')}
 
 // ══════════════════════════════════════════════════════
-// TAB 5 — IA & TECH
-// ══════════════════════════════════════════════════════
-
-const AI_MODELS = [
-  {rank:1,  name:'GPT-4o',         editor:'OpenAI',        domains:'Texte · Analyse · Code · Vision · Finance',      access:'API / ChatGPT Plus',  color:'#10a37f'},
-  {rank:2,  name:'Claude 3.7 Sonnet', editor:'Anthropic',  domains:'Raisonnement · Finance · Droit · Rédaction longue', access:'API / Claude.ai',   color:'#c77b3a'},
-  {rank:3,  name:'Gemini 1.5 Pro', editor:'Google',        domains:'Multimodal · Contexte long · Recherche web',     access:'API / Gemini App',    color:'#4285f4'},
-  {rank:4,  name:'Grok-3',         editor:'xAI (Musk)',    domains:'Actualités temps réel · Humour · Finance',       access:'X Premium+',          color:'#1da1f2'},
-  {rank:5,  name:'DeepSeek R1',    editor:'DeepSeek (CN)', domains:'Raisonnement mathématique · Code · Open source',  access:'Gratuit / API',       color:'#e53935'},
-  {rank:6,  name:'Llama 3.3 70B',  editor:'Meta',          domains:'Open source · Code · Déploiement local',         access:'Gratuit / Open',      color:'#0668e1'},
-  {rank:7,  name:'Mistral Large',  editor:'Mistral AI',    domains:'Multilingue · Europe · Finance · Juridique',     access:'API / Le Chat',       color:'#ff7000'},
-  {rank:8,  name:'Command R+',     editor:'Cohere',        domains:'RAG · Entreprise · Recherche documentaire',      access:'API entreprise',      color:'#39a7a6'},
-  {rank:9,  name:'Perplexity Pro', editor:'Perplexity',    domains:'Recherche web · Actualités · Citations sources',  access:'Abonnement Pro',      color:'#20b8cd'},
-  {rank:10, name:'Copilot GPT-4',  editor:'Microsoft',     domains:'Bureautique · Code · Office 365 intégré',        access:'M365 / Gratuit web',  color:'#00a4ef'},
-  {rank:11, name:'Qwen 2.5 Max',   editor:'Alibaba',       domains:'Asie · Commerce · Mandarin · Multimodal',        access:'API / Gratuit',       color:'#ff6a00'},
-  {rank:12, name:'Gemma 3',        editor:'Google DeepMind',domains:'Léger · On-device · Confidentialité',           access:'Open source',         color:'#34a853'},
-  {rank:13, name:'Phi-4',          editor:'Microsoft',     domains:'Petit modèle · Raisonnement · Edge computing',   access:'Open source',         color:'#737373'},
-  {rank:14, name:'Jamba 1.5',      editor:'AI21 Labs',     domains:'Contexte 256k · Documents longs · Entreprise',   access:'API',                 color:'#6c3fc5'},
-  {rank:15, name:'Yi-Lightning',   editor:'01.AI (CN)',    domains:'Vitesse · Chinois · Coût minimal',               access:'API / Gratuit',       color:'#c0392b'},
-];
-
-const AI_RSS_SOURCES = [
-  {url:'https://www.technologyreview.com/feed/', source:'MIT Technology Review', lang:'en'},
-  {url:'https://www.wired.com/feed/tag/artificial-intelligence/rss', source:'Wired AI', lang:'en'},
-  {url:'https://venturebeat.com/category/ai/feed/', source:'VentureBeat AI', lang:'en'},
-  {url:'https://techcrunch.com/category/artificial-intelligence/feed/', source:'TechCrunch AI', lang:'en'},
-  {url:'https://www.theverge.com/rss/ai-artificial-intelligence/index.xml', source:'The Verge AI', lang:'en'},
-  {url:'https://feeds.feedburner.com/blogspot/gJZg', source:'Google AI Blog', lang:'en'},
-  {url:'https://openai.com/news/rss', source:'OpenAI Blog', lang:'en'},
-  {url:'https://www.anthropic.com/rss', source:'Anthropic', lang:'en'},
-];
-
-function renderAITable(){
-  const tbody=document.getElementById('aiTableBody');
-  if(!tbody)return;
-  tbody.innerHTML=AI_MODELS.map(m=>`
-    <tr style="border-bottom:1px solid var(--border);transition:background .15s" 
-        onmouseover="this.style.background='var(--surface)'" 
-        onmouseout="this.style.background='transparent'">
-      <td style="padding:9px 6px;font-weight:700;color:${m.color};font-size:13px">${m.rank}</td>
-      <td style="padding:9px 6px">
-        <div style="font-weight:700;color:var(--text);white-space:nowrap">${m.name}</div>
-      </td>
-      <td style="padding:9px 6px;color:var(--muted);white-space:nowrap;font-size:11px">${m.editor}</td>
-      <td style="padding:9px 6px;color:var(--text);font-size:11px;line-height:1.4">${m.domains}</td>
-      <td style="padding:9px 6px;white-space:nowrap">
-        <span style="font-size:10px;padding:2px 6px;border-radius:3px;background:var(--surface);border:1px solid var(--border2);color:var(--muted)">${m.access}</span>
-      </td>
-    </tr>`).join('');
-}
-
-async function loadAINews(){
-  const list=document.getElementById('aiNewsList');
-  if(!list)return;
-  list.innerHTML=`<div class="loader"><div class="sp"></div><div>Chargement revues IA mondiales…</div></div>`;
-
-  const results=await Promise.allSettled(AI_RSS_SOURCES.map(s=>fetchRSS(s)));
-  let fetched=results.flatMap(r=>r.status==='fulfilled'?r.value:[]);
-
-  if(fetched.length<2){
-    list.innerHTML=`<div class="loader" style="color:var(--muted)">🔄 Sources IA temporairement indisponibles — réessayez dans quelques secondes</div>`;
-    return;
-  }
-
-  // Déduplique et trie
-  const seen=new Set();
-  fetched=fetched.filter(a=>{
-    const k=a.title.slice(0,40);
-    if(seen.has(k))return false;
-    seen.add(k);return true;
-  });
-  fetched.sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
-
-  // Affiche immédiatement
-  list.innerHTML=fetched.map((a,i)=>`
-    <a class="card" href="${a.link&&a.link!='#'?a.link:'javascript:void(0)'}" ${a.link&&a.link!='#'?'target="_blank" rel="noopener"':''} style="animation-delay:${i*.02}s;border-left:3px solid var(--purple)">
-      <div class="cm">
-        <span class="cs" style="color:var(--purple)">${a.source}</span>
-        <span class="cd"></span>
-        <span class="ct">${formatPubDate(a.pubDate)}</span>
-        <span>🤖</span>
-      </div>
-      <div class="ctitle">${a.title}</div>
-      ${a.description?`<div class="cdesc">${a.description}</div>`:''}
-      <div class="ctags">
-        ${isFresh(a.pubDate)?'<span class="tag new">🔥 Récent</span>':''}
-        <span class="tag new">🔴 Live</span>
-        ${a.translated?'<span class="tag" style="font-size:9px;color:var(--purple);border-color:var(--purple)">✨ traduit</span>':''}
-        ${a.link&&a.link!='#'?'<span class="tag" style="margin-left:auto;color:var(--accent);border-color:var(--accent)">Lire →</span>':''}
-      </div>
-    </a>`).join('');
-
-  // Traduction en arrière-plan
-  list.insertAdjacentHTML('afterbegin',
-    `<div id="transBarAI" style="padding:8px 16px;font-size:11px;color:var(--muted);background:var(--blue-bg);border-bottom:1px solid var(--border);font-style:italic">
-      🔄 Traduction IA en cours…
-    </div>`);
-
-  const toTranslate=fetched.filter(a=>needsTranslation(a)).slice(0,12);
-  for(let i=0;i<toTranslate.length;i+=3){
-    const batch=toTranslate.slice(i,i+3);
-    const translated=await Promise.all(batch.map(a=>translateArticle(a)));
-    // Mise à jour inline
-    translated.forEach(t=>{
-      const cards=list.querySelectorAll('.card .ctitle');
-      cards.forEach(c=>{
-        if(c.textContent.slice(0,30)===t.title.slice(0,30).replace(/<[^>]*>/g,''))return;
-      });
-    });
-    await new Promise(r=>setTimeout(r,300));
-  }
-  document.getElementById('transBarAI')?.remove();
-
-  // Re-render avec traductions du cache
-  list.innerHTML=fetched.map((a,i)=>{
-    const cached=translateCache[a.link||a.title.slice(0,50)]||a;
-    return `
-    <a class="card" href="${cached.link&&cached.link!='#'?cached.link:'javascript:void(0)'}" ${cached.link&&cached.link!='#'?'target="_blank" rel="noopener"':''} style="animation-delay:${i*.02}s;border-left:3px solid var(--purple)">
-      <div class="cm">
-        <span class="cs" style="color:var(--purple)">${cached.source}</span>
-        <span class="cd"></span>
-        <span class="ct">${formatPubDate(cached.pubDate)}</span>
-        <span>🤖</span>
-      </div>
-      <div class="ctitle">${cached.title}</div>
-      ${cached.description?`<div class="cdesc">${cached.description}</div>`:''}
-      <div class="ctags">
-        ${isFresh(cached.pubDate)?'<span class="tag new">🔥 Récent</span>':''}
-        <span class="tag new">🔴 Live</span>
-        ${cached.translated?'<span class="tag" style="font-size:9px;color:var(--purple);border-color:var(--purple)">✨ traduit</span>':''}
-        ${cached.link&&cached.link!='#'?'<span class="tag" style="margin-left:auto;color:var(--accent);border-color:var(--accent)">Lire →</span>':''}
-      </div>
-    </a>`;}).join('');
-}
-
-// ── Tab switching (mise à jour avec onglet IA) ─────────
-document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
-  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(x=>x.classList.remove('active'));
-  t.classList.add('active');
-  document.getElementById('tab-'+t.dataset.tab).classList.add('active');
-  const idx=['news','reg','opa','ai','search'].indexOf(t.dataset.tab);
-  document.querySelectorAll('.ni').forEach((n,i)=>n.classList.toggle('active',i===idx));
-  if(t.dataset.tab==='search')document.getElementById('searchInput').focus();
-  if(t.dataset.tab==='ai'){renderAITable();loadAINews();}
-}));
-document.querySelectorAll('.ni').forEach((n,i)=>n.addEventListener('click',()=>{
-  const tabs=['news','reg','opa','ai','search'];
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.ni').forEach(x=>x.classList.remove('active'));
-  n.classList.add('active');
-  const tab=document.querySelector('.tab[data-tab="'+tabs[i]+'"]');
-  if(tab)tab.classList.add('active');
-  const content=document.getElementById('tab-'+tabs[i]);
-  if(content)content.classList.add('active');
-  if(tabs[i]==='ai'){renderAITable();loadAINews();}
-}));
-
-// ══════════════════════════════════════════════════════
 // RECHERCHE — cherche dans TOUS les contenus
 // ══════════════════════════════════════════════════════
 function getAllContent(){
@@ -1117,6 +957,111 @@ function loadOPA(){
       </a>`).join('');
   },500);
 }
+
+// ══════════════════════════════════════════════════════
+// TAB 5 — IA & TECH
+// ══════════════════════════════════════════════════════
+const AI_MODELS=[
+  {rank:1,  name:'GPT-4o',            editor:'OpenAI',         domains:'Texte · Analyse · Code · Vision · Finance',         access:'API / ChatGPT Plus', color:'#10a37f'},
+  {rank:2,  name:'Claude 3.7 Sonnet', editor:'Anthropic',      domains:'Raisonnement · Finance · Droit · Rédaction longue', access:'API / Claude.ai',    color:'#c77b3a'},
+  {rank:3,  name:'Gemini 1.5 Pro',    editor:'Google',         domains:'Multimodal · Contexte long · Recherche web',        access:'API / Gemini App',   color:'#4285f4'},
+  {rank:4,  name:'Grok-3',            editor:'xAI (Musk)',     domains:'Actualités temps réel · Finance · Humour',          access:'X Premium+',         color:'#1da1f2'},
+  {rank:5,  name:'DeepSeek R1',       editor:'DeepSeek (CN)',  domains:'Raisonnement mathématique · Code · Open source',    access:'Gratuit / API',      color:'#e53935'},
+  {rank:6,  name:'Llama 3.3 70B',     editor:'Meta',           domains:'Open source · Code · Déploiement local',            access:'Gratuit / Open',     color:'#0668e1'},
+  {rank:7,  name:'Mistral Large',     editor:'Mistral AI 🇫🇷', domains:'Multilingue · Europe · Finance · Juridique',        access:'API / Le Chat',      color:'#ff7000'},
+  {rank:8,  name:'Command R+',        editor:'Cohere',         domains:'RAG · Entreprise · Recherche documentaire',         access:'API entreprise',     color:'#39a7a6'},
+  {rank:9,  name:'Perplexity Pro',    editor:'Perplexity',     domains:'Recherche web · Actualités · Citations sources',    access:'Abonnement Pro',     color:'#20b8cd'},
+  {rank:10, name:'Copilot GPT-4',     editor:'Microsoft',      domains:'Bureautique · Code · Office 365 intégré',           access:'M365 / Gratuit web', color:'#00a4ef'},
+  {rank:11, name:'Qwen 2.5 Max',      editor:'Alibaba',        domains:'Asie · Commerce · Mandarin · Multimodal',           access:'API / Gratuit',      color:'#ff6a00'},
+  {rank:12, name:'Gemma 3',           editor:'Google DeepMind',domains:'Léger · On-device · Confidentialité',               access:'Open source',        color:'#34a853'},
+  {rank:13, name:'Phi-4',             editor:'Microsoft',      domains:'Petit modèle · Raisonnement · Edge computing',      access:'Open source',        color:'#737373'},
+  {rank:14, name:'Jamba 1.5',         editor:'AI21 Labs',      domains:'Contexte 256k · Documents longs · Entreprise',      access:'API',                color:'#6c3fc5'},
+  {rank:15, name:'Yi-Lightning',      editor:'01.AI (CN)',     domains:'Vitesse · Chinois · Coût minimal',                  access:'API / Gratuit',      color:'#c0392b'},
+];
+
+const AI_RSS_SOURCES=[
+  {url:'https://www.technologyreview.com/feed/',                              source:'MIT Technology Review', lang:'en'},
+  {url:'https://www.wired.com/feed/tag/artificial-intelligence/rss',          source:'Wired AI',              lang:'en'},
+  {url:'https://venturebeat.com/category/ai/feed/',                           source:'VentureBeat AI',        lang:'en'},
+  {url:'https://techcrunch.com/category/artificial-intelligence/feed/',       source:'TechCrunch AI',         lang:'en'},
+  {url:'https://www.theverge.com/rss/ai-artificial-intelligence/index.xml',   source:'The Verge AI',          lang:'en'},
+  {url:'https://feeds.feedburner.com/blogspot/gJZg',                          source:'Google AI Blog',        lang:'en'},
+  {url:'https://openai.com/news/rss',                                          source:'OpenAI Blog',           lang:'en'},
+];
+
+function renderAITable(){
+  const tbody=document.getElementById('aiTableBody');
+  if(!tbody)return;
+  tbody.innerHTML=AI_MODELS.map(m=>`
+    <tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:9px 6px;font-weight:700;color:${m.color};font-size:13px">${m.rank}</td>
+      <td style="padding:9px 6px;font-weight:700;color:var(--text);white-space:nowrap">${m.name}</td>
+      <td style="padding:9px 6px;color:var(--muted);white-space:nowrap;font-size:11px">${m.editor}</td>
+      <td style="padding:9px 6px;color:var(--text);font-size:11px;line-height:1.5">${m.domains}</td>
+      <td style="padding:9px 6px;white-space:nowrap"><span style="font-size:10px;padding:2px 6px;border-radius:3px;background:var(--surface);border:1px solid var(--border2);color:var(--muted)">${m.access}</span></td>
+    </tr>`).join('');
+}
+
+async function loadAINews(){
+  const list=document.getElementById('aiNewsList');
+  if(!list)return;
+  list.innerHTML=`<div class="loader"><div class="sp"></div><div>Chargement revues IA mondiales…</div></div>`;
+  const results=await Promise.allSettled(AI_RSS_SOURCES.map(s=>fetchRSS(s)));
+  let fetched=results.flatMap(r=>r.status==='fulfilled'?r.value:[]);
+  if(fetched.length<2){
+    list.innerHTML=`<div class="loader" style="color:var(--muted)">🔄 Sources IA indisponibles — réessayez</div>`;
+    return;
+  }
+  const seen=new Set();
+  fetched=fetched.filter(a=>{const k=a.title.slice(0,40);if(seen.has(k))return false;seen.add(k);return true;});
+  fetched.sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
+  const renderCard=(a,i)=>`
+    <a class="card" href="${a.link&&a.link!='#'?a.link:'javascript:void(0)'}" ${a.link&&a.link!='#'?'target="_blank" rel="noopener"':''} style="animation-delay:${i*.02}s;border-left:3px solid var(--purple)">
+      <div class="cm"><span class="cs" style="color:var(--purple)">${a.source}</span><span class="cd"></span><span class="ct">${formatPubDate(a.pubDate)}</span><span>🤖</span></div>
+      <div class="ctitle">${a.title}</div>
+      ${a.description?`<div class="cdesc">${a.description}</div>`:''}
+      <div class="ctags">
+        ${isFresh(a.pubDate)?'<span class="tag new">🔥 Récent</span>':''}
+        <span class="tag new">🔴 Live</span>
+        ${a.translated?'<span class="tag" style="font-size:9px;color:var(--purple);border-color:var(--purple)">✨ traduit</span>':''}
+        ${a.link&&a.link!='#'?'<span class="tag" style="margin-left:auto;color:var(--accent);border-color:var(--accent)">Lire →</span>':''}
+      </div>
+    </a>`;
+  list.innerHTML=fetched.map(renderCard).join('');
+  // Traduction arrière-plan
+  list.insertAdjacentHTML('afterbegin',`<div id="transBarAI" style="padding:8px 16px;font-size:11px;color:var(--muted);background:var(--blue-bg);border-bottom:1px solid var(--border);font-style:italic">🔄 Traduction en cours…</div>`);
+  const toTranslate=fetched.filter(a=>needsTranslation(a)).slice(0,12);
+  for(let i=0;i<toTranslate.length;i+=3){
+    await Promise.all(toTranslate.slice(i,i+3).map(a=>translateArticle(a)));
+    await new Promise(r=>setTimeout(r,300));
+  }
+  document.getElementById('transBarAI')?.remove();
+  list.innerHTML=fetched.map((a,i)=>renderCard(translateCache[a.link||a.title.slice(0,50)]||a,i)).join('');
+}
+
+// ── Tab switching ─────────────────────────────────────
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');
+  document.getElementById('tab-'+t.dataset.tab).classList.add('active');
+  const idx=['news','reg','opa','ai','search'].indexOf(t.dataset.tab);
+  document.querySelectorAll('.ni').forEach((n,i)=>n.classList.toggle('active',i===idx));
+  if(t.dataset.tab==='search')document.getElementById('searchInput').focus();
+  if(t.dataset.tab==='ai'){renderAITable();loadAINews();}
+}));
+document.querySelectorAll('.ni').forEach((n,i)=>n.addEventListener('click',()=>{
+  const tabs=['news','reg','opa','ai','search'];
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.ni').forEach(x=>x.classList.remove('active'));
+  n.classList.add('active');
+  const tab=document.querySelector('.tab[data-tab="'+tabs[i]+'"]');
+  if(tab)tab.classList.add('active');
+  const content=document.getElementById('tab-'+tabs[i]);
+  if(content)content.classList.add('active');
+  if(tabs[i]==='ai'){renderAITable();loadAINews();}
+}));
 
 // ── Init ──────────────────────────────────────────────
 loadNews();
