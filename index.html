@@ -513,29 +513,67 @@ function getNewsArticles(){
 }
 
 // ══════════════════════════════════════════════════════
-// SOURCES RSS — Premium anglosaxons + Réglementaires
+// SOURCES RSS — Couverture mondiale premium
 // ══════════════════════════════════════════════════════
 const RSS_SOURCES = [
-  // ── Anglosaxons Premium ──
-  {url:'https://feeds.reuters.com/reuters/businessNews',               source:'Reuters Business',    country:'us', lang:'en'},
-  {url:'https://feeds.reuters.com/reuters/companyNews',                source:'Reuters Companies',   country:'us', lang:'en'},
-  {url:'https://feeds.reuters.com/reuters/mergersNews',                source:'Reuters M&A',         country:'us', lang:'en'},
-  {url:'https://feeds.bloomberg.com/markets/news.rss',                 source:'Bloomberg Markets',   country:'us', lang:'en'},
-  {url:'https://feeds.bloomberg.com/politics/news.rss',                source:'Bloomberg Politics',  country:'us', lang:'en'},
-  {url:'https://www.ft.com/rss/home/europe',                           source:'Financial Times',     country:'gb', lang:'en'},
-  {url:'https://www.ft.com/rss/home/markets',                          source:'FT Markets',          country:'gb', lang:'en'},
-  {url:'https://feeds.content.dowjones.io/public/rss/mw_realtimeheadlines', source:'MarketWatch',  country:'us', lang:'en'},
-  {url:'https://www.cnbc.com/id/100003114/device/rss/rss.html',        source:'CNBC Markets',        country:'us', lang:'en'},
-  {url:'https://www.cnbc.com/id/10000664/device/rss/rss.html',         source:'CNBC Business',       country:'us', lang:'en'},
-  {url:'https://feeds.wsj.com/wsj/xml/rss/3_7085.xml',                source:'Wall Street Journal', country:'us', lang:'en'},
+  // ── Reuters (agence de référence mondiale) ──
+  {url:'https://feeds.reuters.com/reuters/businessNews',               source:'Reuters Business',      country:'us', lang:'en'},
+  {url:'https://feeds.reuters.com/reuters/companyNews',                source:'Reuters Companies',     country:'us', lang:'en'},
+  {url:'https://feeds.reuters.com/reuters/mergersNews',                source:'Reuters M&A',           country:'us', lang:'en'},
+  // ── Bloomberg ──
+  {url:'https://feeds.bloomberg.com/markets/news.rss',                 source:'Bloomberg Markets',     country:'us', lang:'en'},
+  {url:'https://feeds.bloomberg.com/politics/news.rss',                source:'Bloomberg Politics',    country:'us', lang:'en'},
+  // ── Wall Street Journal ──
+  {url:'https://feeds.wsj.com/wsj/xml/rss/3_7085.xml',                source:'Wall Street Journal',   country:'us', lang:'en'},
+  {url:'https://feeds.wsj.com/wsj/xml/rss/3_7014.xml',                source:'WSJ Markets',           country:'us', lang:'en'},
+  {url:'https://feeds.wsj.com/wsj/xml/rss/3_7031.xml',                source:'WSJ Economy',           country:'us', lang:'en'},
+  // ── New York Times ──
+  {url:'https://rss.nytimes.com/services/xml/rss/nyt/Business.xml',    source:'New York Times Éco',    country:'us', lang:'en'},
+  {url:'https://rss.nytimes.com/services/xml/rss/nyt/Economy.xml',     source:'NYT Economy',           country:'us', lang:'en'},
+  // ── Washington Post ──
+  {url:'https://feeds.washingtonpost.com/rss/business',                source:'Washington Post Éco',   country:'us', lang:'en'},
+  {url:'https://feeds.washingtonpost.com/rss/business/economy',        source:'WaPo Economy',          country:'us', lang:'en'},
+  // ── Financial Times ──
+  {url:'https://www.ft.com/rss/home/europe',                           source:'Financial Times',       country:'gb', lang:'en'},
+  {url:'https://www.ft.com/rss/home/markets',                          source:'FT Markets',            country:'gb', lang:'en'},
+  // ── The Economist — analyses géopolitiques financières ──
+  {url:'https://www.economist.com/finance-and-economics/rss.xml',      source:'The Economist',         country:'gb', lang:'en'},
+  {url:'https://www.economist.com/business/rss.xml',                   source:'Economist Business',    country:'gb', lang:'en'},
+  // ── CNBC & MarketWatch ──
+  {url:'https://www.cnbc.com/id/100003114/device/rss/rss.html',        source:'CNBC Markets',          country:'us', lang:'en'},
+  {url:'https://feeds.content.dowjones.io/public/rss/mw_realtimeheadlines', source:'MarketWatch',     country:'us', lang:'en'},
+  // ════ ASIE — Sources indépendantes à haute valeur ════
+  // ── Chine : Caixin (seule revue indépendante du PCC) ──
+  {url:'https://www.caixinglobal.com/rss/home.xml',                    source:'Caixin Global 🇨🇳',     country:'cn', lang:'en'},
+  {url:'https://www.caixinglobal.com/rss/finance.xml',                 source:'Caixin Finance 🇨🇳',    country:'cn', lang:'en'},
+  // ── Hong Kong : SCMP (indépendant malgré Alibaba) ──
+  {url:'https://www.scmp.com/rss/91/feed',                             source:'S. China Morning Post', country:'cn', lang:'en'},
+  {url:'https://www.scmp.com/rss/92/feed',                             source:'SCMP Business',         country:'cn', lang:'en'},
+  // ── Japon : Nikkei Asia (référence chaînes d\'appro) ──
+  {url:'https://asia.nikkei.com/rss/feed/nar',                         source:'Nikkei Asia 🇯🇵',       country:'jp', lang:'en'},
+  {url:'https://asia.nikkei.com/rss/feed/Finance',                     source:'Nikkei Finance 🇯🇵',    country:'jp', lang:'en'},
+  // ── Inde : Economic Times + Mint ──
+  {url:'https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms', source:'Economic Times 🇮🇳', country:'in', lang:'en'},
+  {url:'https://economictimes.indiatimes.com/news/economy/rssfeeds/1373380680.cms', source:'ET Economy 🇮🇳', country:'in', lang:'en'},
+  {url:'https://www.livemint.com/rss/markets',                         source:'Mint Markets 🇮🇳',      country:'in', lang:'en'},
+  // ── Corée du Sud : Korea Herald (Samsung, chipmakers) ──
+  {url:'https://www.koreaherald.com/common/rss_xml.php?ct=102',        source:'Korea Herald 🇰🇷',      country:'jp', lang:'en'},
+  // ════ MOYEN-ORIENT & GOLFE ════
+  // ── Arab News (fonds souverains, pétrole, Vision 2030) ──
+  {url:'https://www.arabnews.com/cat/12/rss.xml',                      source:'Arab News 🇸🇦',         country:'us', lang:'en'},
+  // ── Gulf News Business ──
+  {url:'https://gulfnews.com/rss/business',                            source:'Gulf News Biz 🇦🇪',     country:'us', lang:'en'},
+  // ════ EUROPE CONTINENTALE ════
+  {url:'https://www.handelsblatt.com/rss',                             source:'Handelsblatt 🇩🇪',      country:'de', lang:'de'},
+  {url:'https://www.expansion.com/rss/2.0/portada.xml',               source:'Expansión 🇪🇸',         country:'es', lang:'es'},
+  {url:'https://www.ilsole24ore.com/rss/economia--finanza.xml',        source:'Il Sole 24 Ore 🇮🇹',    country:'it', lang:'it'},
   // ── Réglementaires & Institutionnels ──
-  {url:'https://www.amf-france.org/fr/rss',                            source:'AMF France',          country:'fr', lang:'fr', reg:true},
+  {url:'https://www.amf-france.org/fr/rss',                            source:'AMF France',            country:'fr', lang:'fr', reg:true},
   {url:'https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=8-K&dateb=&owner=include&count=10&search_text=&output=atom', source:'SEC EDGAR 8-K', country:'us', lang:'en', reg:true},
   {url:'https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=13-D&dateb=&owner=include&count=10&search_text=&output=atom', source:'SEC EDGAR 13-D', country:'us', lang:'en', reg:true},
-  {url:'https://www.euronext.com/fr/rss',                              source:'Euronext',            country:'fr', lang:'fr', reg:true},
   // ── Sources françaises ──
-  {url:'https://www.lesechos.fr/rss/rss_finance.xml',                  source:'Les Échos',           country:'fr', lang:'fr'},
-  {url:'https://www.latribune.fr/rss.html',                            source:'La Tribune',          country:'fr', lang:'fr'},
+  {url:'https://www.lesechos.fr/rss/rss_finance.xml',                  source:'Les Échos',             country:'fr', lang:'fr'},
+  {url:'https://www.latribune.fr/rss.html',                            source:'La Tribune',            country:'fr', lang:'fr'},
   {url:'https://bfmbusiness.bfmtv.com/rss/info/flux-rss/flux-toutes-les-actualites/', source:'BFM Business', country:'fr', lang:'fr'},
 ];
 
@@ -567,25 +605,36 @@ function detectTopic(t){
   return 'bourse';
 }
 
-// ── Traduction DeepL Free ──────────────────────────────
+// ── Traduction universelle ──────────────────────────────
 const FR_SOURCES=['Les Échos','La Tribune','BFM Business','AMF France','Euronext'];
 const translateCache={};
+
+// Détecte la langue source selon la source ou le contenu
+function detectLang(article){
+  if(article.lang)return article.lang;
+  const src=article.source||'';
+  if(src.includes('🇩🇪')||src.includes('Handelsblatt'))return 'de';
+  if(src.includes('🇪🇸')||src.includes('Expansión'))return 'es';
+  if(src.includes('🇮🇹')||src.includes('Sole'))return 'it';
+  if(src.includes('🇰🇷')||src.includes('Korea'))return 'ko';
+  return 'en';
+}
 
 function needsTranslation(article){
   if(FR_SOURCES.includes(article.source))return false;
   if(article.lang==='fr')return false;
-  const s=(article.title+' '+(article.description||'')).toLowerCase();
-  const engWords=['the ','is ','are ','was ',' on ',' in ',' of ',' to ',' for ',' as ',' at ',' by ','and ','with ','from '];
-  return engWords.filter(w=>s.includes(w)).length>=3;
+  const lang=detectLang(article);
+  if(lang!=='fr')return true; // tout ce qui n'est pas français doit être traduit
+  return false;
 }
 
-async function deepLTranslate(text){
+async function deepLTranslate(text, srcLang='en'){
   if(!text||text.length<5)return text;
   if(text.includes('MYMEMORY')||text.includes('YOU USED ALL'))return '';
-  // Google Translate - plusieurs URLs de fallback
+  // Google Translate avec langue source détectée
   const urls=[
-    `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=fr&dt=t&q=${encodeURIComponent(text.slice(0,500))}`,
-    `https://translate.google.com/translate_a/single?client=gtx&sl=en&tl=fr&dt=t&q=${encodeURIComponent(text.slice(0,500))}`,
+    `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${srcLang}&tl=fr&dt=t&q=${encodeURIComponent(text.slice(0,500))}`,
+    `https://translate.google.com/translate_a/single?client=gtx&sl=${srcLang}&tl=fr&dt=t&q=${encodeURIComponent(text.slice(0,500))}`,
   ];
   for(const url of urls){
     try{
@@ -615,10 +664,11 @@ async function translateArticle(article){
   if(!needsTranslation(article))return article;
   const cacheKey=article.link||article.title.slice(0,50);
   if(translateCache[cacheKey])return translateCache[cacheKey];
+  const srcLang=detectLang(article);
   try{
     const [titre,resume]=await Promise.all([
-      deepLTranslate(article.title),
-      article.description?deepLTranslate(article.description):Promise.resolve('')
+      deepLTranslate(article.title, srcLang),
+      article.description?deepLTranslate(article.description, srcLang):Promise.resolve('')
     ]);
     const result={...article,title:titre||article.title,description:resume||article.description,translated:true};
     translateCache[cacheKey]=result;
