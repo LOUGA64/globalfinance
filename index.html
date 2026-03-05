@@ -221,7 +221,50 @@
     </div>
     <div class="sh">
       <div class="st">Actualités du jour</div>
-      <div style="display:flex;align-items:center;gap:8px">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <select id="sourceFilter" onchange="filterBySource()" style="font-size:11px;padding:4px 8px;border:1px solid var(--border2);border-radius:4px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;cursor:pointer;max-width:160px">
+          <option value="all">🌍 Toutes les sources</option>
+          <optgroup label="🇺🇸 USA Premium">
+            <option value="Reuters Business">Reuters Business</option>
+            <option value="Reuters Companies">Reuters Companies</option>
+            <option value="Reuters M&A">Reuters M&A</option>
+            <option value="Bloomberg Markets">Bloomberg Markets</option>
+            <option value="Bloomberg Politics">Bloomberg Politics</option>
+            <option value="Wall Street Journal">Wall Street Journal</option>
+            <option value="WSJ Markets">WSJ Markets</option>
+            <option value="WSJ Economy">WSJ Economy</option>
+            <option value="New York Times Éco">New York Times Éco</option>
+            <option value="NYT Economy">NYT Economy</option>
+            <option value="Washington Post Éco">Washington Post Éco</option>
+            <option value="WaPo Economy">WaPo Economy</option>
+            <option value="CNBC Markets">CNBC Markets</option>
+            <option value="MarketWatch">MarketWatch</option>
+          </optgroup>
+          <optgroup label="🇬🇧 UK">
+            <option value="Financial Times">Financial Times</option>
+            <option value="FT Markets">FT Markets</option>
+            <option value="The Economist">The Economist</option>
+            <option value="Economist Business">Economist Business</option>
+          </optgroup>
+          <optgroup label="🇫🇷 France">
+            <option value="Les Échos">Les Échos</option>
+            <option value="La Tribune">La Tribune</option>
+            <option value="BFM Business">BFM Business</option>
+          </optgroup>
+          <optgroup label="🌏 Asie">
+            <option value="Caixin Global 🇨🇳">Caixin Global</option>
+            <option value="S. China Morning Post">South China Morning Post</option>
+            <option value="Nikkei Asia 🇯🇵">Nikkei Asia</option>
+            <option value="Economic Times 🇮🇳">Economic Times Inde</option>
+            <option value="Mint Markets 🇮🇳">Mint Markets</option>
+            <option value="Korea Herald 🇰🇷">Korea Herald</option>
+          </optgroup>
+          <optgroup label="🌍 Autres">
+            <option value="Arab News 🇸🇦">Arab News</option>
+            <option value="Gulf News Biz 🇦🇪">Gulf News</option>
+            <option value="Handelsblatt 🇩🇪">Handelsblatt</option>
+          </optgroup>
+        </select>
         <span class="cnt" id="artCnt">0</span>
         <button class="rbtn" id="rbtn1" onclick="loadNews()">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
@@ -630,31 +673,27 @@ function needsTranslation(article){
 
 async function deepLTranslate(text, srcLang='en'){
   if(!text||text.length<5)return text;
-  if(text.includes('MYMEMORY')||text.includes('YOU USED ALL'))return '';
-  // Google Translate avec langue source détectée
-  const urls=[
-    `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${srcLang}&tl=fr&dt=t&q=${encodeURIComponent(text.slice(0,500))}`,
-    `https://translate.google.com/translate_a/single?client=gtx&sl=${srcLang}&tl=fr&dt=t&q=${encodeURIComponent(text.slice(0,500))}`,
-  ];
-  for(const url of urls){
-    try{
-      const r=await fetch(url);
-      if(!r.ok)continue;
+  if(text.includes('MYMEMORY')||text.includes('YOU USED ALL')||text.includes('NEXT AVAILABLE'))return '';
+  const clean=text.slice(0,450); // MyMemory : limite 500 chars
+  // MyMemory avec email = 1000 mots/jour au lieu de 100
+  try{
+    const url=`https://api.mymemory.translated.net/get?q=${encodeURIComponent(clean)}&langpair=${srcLang}|fr&de=a.nouste4@gmail.com`;
+    const r=await fetch(url,{signal:AbortSignal.timeout(6000)});
+    if(r.ok){
+      const data=await r.json();
+      const t=data?.responseData?.translatedText;
+      // Filtre les messages d'erreur MyMemory
+      if(t&&t.length>3&&!t.includes('MYMEMORY')&&!t.includes('YOU USED')&&t!==text)return t;
+    }
+  }catch(e){}
+  // Fallback Google Translate si MyMemory échoue
+  try{
+    const url=`https://translate.googleapis.com/translate_a/single?client=gtx&sl=${srcLang}&tl=fr&dt=t&q=${encodeURIComponent(clean)}`;
+    const r=await fetch(url,{signal:AbortSignal.timeout(5000)});
+    if(r.ok){
       const data=await r.json();
       const translated=data?.[0]?.map(x=>x?.[0]).filter(Boolean).join('');
       if(translated&&translated.length>3&&translated!==text)return translated;
-    }catch(e){continue;}
-  }
-  // Dernier recours : LibreTranslate public
-  try{
-    const r=await fetch('https://libretranslate.com/translate',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({q:text.slice(0,500),source:'en',target:'fr',format:'text'})
-    });
-    if(r.ok){
-      const data=await r.json();
-      if(data.translatedText)return data.translatedText;
     }
   }catch(e){}
   return text;
@@ -787,12 +826,20 @@ function formatPubDate(d){
 }
 
 function renderNews(){
-  const f=allNews.filter(a=>(ac==='all'||a.country===ac)&&(at==='all'||a.topic===at));
+  const src=document.getElementById('sourceFilter')?.value||'all';
+  const f=allNews.filter(a=>
+    (ac==='all'||a.country===ac) &&
+    (at==='all'||a.topic===at) &&
+    (src==='all'||a.source===src)
+  );
   document.getElementById('artCnt').textContent=`${f.length} articles`;
   document.getElementById('sA').textContent=f.length||'—';
   document.getElementById('sS').textContent=f.length?new Set(f.map(a=>a.source)).size:'—';
   document.getElementById('sF').textContent=f.length?f.filter(a=>isFresh(a.pubDate)).length:'—';
-  if(!f.length){document.getElementById('newsList').innerHTML=`<div class="loader">🔍 Aucun article</div>`;return;}
+  if(!f.length){
+    document.getElementById('newsList').innerHTML=`<div class="loader">🔍 Aucun article pour cette source — essayez d'actualiser</div>`;
+    return;
+  }
   document.getElementById('newsList').innerHTML=f.map((a,i)=>`
     <a class="card${a.country==='cn'?' cn':''}" href="${a.link&&a.link!='#'?a.link:'javascript:void(0)'}" ${a.link&&a.link!='#'?'target="_blank" rel="noopener"':''} style="animation-delay:${i*.03}s">
       <div class="cm">
@@ -811,6 +858,15 @@ function renderNews(){
         ${a.link&&a.link!='#'?'<span class="tag" style="margin-left:auto;color:var(--accent);border-color:var(--accent)">Lire l\'article →</span>':''}
       </div>
     </a>`).join('');
+}
+
+function filterBySource(){
+  // Filtre immédiat sur les articles déjà chargés, sans recharger les RSS
+  renderNews();
+  // Met à jour le titre pour indiquer le filtre actif
+  const src=document.getElementById('sourceFilter')?.value||'all';
+  const st=document.querySelector('.st');
+  if(st) st.textContent = src==='all' ? 'Actualités du jour' : `${src}`;
 }
 
 document.getElementById('cfilter').addEventListener('click',e=>{
