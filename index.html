@@ -177,6 +177,7 @@
     <div class="tab active" data-tab="news">📰 Actualités</div>
     <div class="tab" data-tab="reg">🏛️ AMF / SEC</div>
     <div class="tab" data-tab="opa">🚨 OPA / M&A</div>
+    <div class="tab" data-tab="fr">🇫🇷 Valeurs FR</div>
     <div class="tab" data-tab="ai">🤖 IA & Tech</div>
     <div class="tab" data-tab="search">🔍 Recherche</div>
   </div>
@@ -224,27 +225,32 @@
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         <select id="sourceFilter" onchange="filterBySource()" style="font-size:11px;padding:4px 8px;border:1px solid var(--border2);border-radius:4px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;cursor:pointer;max-width:160px">
           <option value="all">🌍 Toutes les sources</option>
-          <optgroup label="🇺🇸 USA Premium">
+          <optgroup label="🇺🇸 USA — Agences libres">
             <option value="Reuters Business">Reuters Business</option>
             <option value="Reuters Companies">Reuters Companies</option>
             <option value="Reuters M&A">Reuters M&A</option>
-            <option value="Bloomberg Markets">Bloomberg Markets</option>
-            <option value="Bloomberg Politics">Bloomberg Politics</option>
-            <option value="Wall Street Journal">Wall Street Journal</option>
-            <option value="WSJ Markets">WSJ Markets</option>
-            <option value="WSJ Economy">WSJ Economy</option>
-            <option value="New York Times Éco">New York Times Éco</option>
-            <option value="NYT Economy">NYT Economy</option>
-            <option value="Washington Post Éco">Washington Post Éco</option>
-            <option value="WaPo Economy">WaPo Economy</option>
-            <option value="CNBC Markets">CNBC Markets</option>
+            <option value="AP Business">AP Business</option>
+            <option value="AP Finance">AP Finance</option>
+            <option value="Yahoo Finance">Yahoo Finance</option>
+            <option value="Yahoo Finance Top">Yahoo Finance Top</option>
+            <option value="Investing.com">Investing.com</option>
+            <option value="Investing Stocks">Investing Stocks</option>
             <option value="MarketWatch">MarketWatch</option>
+            <option value="MarketWatch Top">MarketWatch Top</option>
+            <option value="CNBC Markets">CNBC Markets</option>
+            <option value="CNBC Economy">CNBC Economy</option>
+            <option value="Barron's">Barron's</option>
           </optgroup>
-          <optgroup label="🇬🇧 UK">
-            <option value="Financial Times">Financial Times</option>
-            <option value="FT Markets">FT Markets</option>
+          <optgroup label="🇺🇸 USA — Presse">
+            <option value="New York Times">New York Times</option>
+            <option value="NYT Economy">NYT Economy</option>
+            <option value="Washington Post">Washington Post</option>
+            <option value="WaPo Economy">WaPo Economy</option>
+          </optgroup>
+          <optgroup label="🇬🇧 Royaume-Uni">
+            <option value="The Guardian Business">The Guardian Business</option>
+            <option value="Guardian Economics">Guardian Economics</option>
             <option value="The Economist">The Economist</option>
-            <option value="Economist Business">Economist Business</option>
           </optgroup>
           <optgroup label="🇫🇷 France">
             <option value="Les Échos">Les Échos</option>
@@ -252,17 +258,18 @@
             <option value="BFM Business">BFM Business</option>
           </optgroup>
           <optgroup label="🌏 Asie">
-            <option value="Caixin Global 🇨🇳">Caixin Global</option>
-            <option value="S. China Morning Post">South China Morning Post</option>
-            <option value="Nikkei Asia 🇯🇵">Nikkei Asia</option>
-            <option value="Economic Times 🇮🇳">Economic Times Inde</option>
-            <option value="Mint Markets 🇮🇳">Mint Markets</option>
+            <option value="Caixin Global 🇨🇳">Caixin Global (Chine)</option>
+            <option value="S. China Morning Post 🇭🇰">South China Morning Post</option>
+            <option value="Nikkei Asia 🇯🇵">Nikkei Asia (Japon)</option>
+            <option value="Economic Times 🇮🇳">Economic Times (Inde)</option>
+            <option value="ET Economy 🇮🇳">ET Economy (Inde)</option>
             <option value="Korea Herald 🇰🇷">Korea Herald</option>
           </optgroup>
           <optgroup label="🌍 Autres">
             <option value="Arab News 🇸🇦">Arab News</option>
-            <option value="Gulf News Biz 🇦🇪">Gulf News</option>
             <option value="Handelsblatt 🇩🇪">Handelsblatt</option>
+            <option value="Expansión 🇪🇸">Expansión</option>
+            <option value="Il Sole 24 Ore 🇮🇹">Il Sole 24 Ore</option>
           </optgroup>
         </select>
         <span class="cnt" id="artCnt">0</span>
@@ -357,6 +364,41 @@
     </div>
     <div class="list" id="aiNewsList"><div class="loader"><div class="sp"></div><div>Chargement…</div></div></div>
   </div>
+  <!-- ══════════════ TAB FR : VALEURS FRANÇAISES ══════════════ -->
+  <div class="tab-content" id="tab-fr">
+
+    <div class="infobox" style="border-left:3px solid #002395;background:linear-gradient(135deg,rgba(0,35,149,.06),rgba(237,41,57,.04))">
+      <strong>🇫🇷 Veille Valeurs Françaises — CAC 40 · SBF 120</strong><br>
+      <span style="font-size:11px">Rumeurs résultats · Consensus analystes · Alertes AMF · Sources spécialisées françaises</span>
+    </div>
+
+    <!-- Calendrier résultats à venir -->
+    <div style="margin:14px 0 8px;font-family:'Playfair Display',serif;font-size:15px;font-weight:700;font-style:italic;color:var(--text)">
+      📅 Prochains résultats SBF 120
+    </div>
+    <div id="frCalendar" style="overflow-x:auto;margin-bottom:16px">
+      <table style="width:100%;border-collapse:collapse;font-size:11px;font-family:'DM Sans',sans-serif">
+        <thead>
+          <tr style="border-bottom:2px solid var(--text)">
+            <th style="padding:7px 6px;color:var(--muted);font-weight:600;text-align:left">Date</th>
+            <th style="padding:7px 6px;color:var(--muted);font-weight:600;text-align:left">Société</th>
+            <th style="padding:7px 6px;color:var(--muted);font-weight:600;text-align:left">Indice</th>
+            <th style="padding:7px 6px;color:var(--muted);font-weight:600;text-align:left">Consensus</th>
+            <th style="padding:7px 6px;color:var(--muted);font-weight:600;text-align:left">Signal</th>
+          </tr>
+        </thead>
+        <tbody id="frCalBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Actualités valeurs françaises en direct -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="font-family:'Playfair Display',serif;font-size:15px;font-weight:700;font-style:italic">Flux spécialisés France</div>
+      <button onclick="loadFRNews()" style="background:none;border:1px solid var(--border2);border-radius:4px;padding:5px 10px;font-size:11px;cursor:pointer;color:var(--text);font-family:'DM Sans',sans-serif">↻ Actualiser</button>
+    </div>
+    <div class="list" id="frNewsList"><div class="loader"><div class="sp"></div><div>Chargement…</div></div></div>
+  </div>
+
   <div class="tab-content" id="tab-search">
     <div style="position:relative;margin-bottom:16px">
       <input type="text" id="searchInput" placeholder="Rechercher dans toutes les actualités…"
@@ -376,6 +418,7 @@
   <div class="ni active"><div class="ni-icon">📰</div>News</div>
   <div class="ni"><div class="ni-icon">🏛️</div>AMF/SEC</div>
   <div class="ni"><div class="ni-icon">🚨</div>OPA</div>
+  <div class="ni"><div class="ni-icon">🇫🇷</div>Valeurs</div>
   <div class="ni"><div class="ni-icon">🤖</div>IA</div>
   <div class="ni"><div class="ni-icon">🔍</div>Recherche</div>
 </nav>
@@ -556,68 +599,67 @@ function getNewsArticles(){
 }
 
 // ══════════════════════════════════════════════════════
-// SOURCES RSS — Couverture mondiale premium
+// SOURCES RSS — 100% gratuites, sans paywall
 // ══════════════════════════════════════════════════════
 const RSS_SOURCES = [
-  // ── Reuters (agence de référence mondiale) ──
-  {url:'https://feeds.reuters.com/reuters/businessNews',               source:'Reuters Business',      country:'us', lang:'en'},
-  {url:'https://feeds.reuters.com/reuters/companyNews',                source:'Reuters Companies',     country:'us', lang:'en'},
-  {url:'https://feeds.reuters.com/reuters/mergersNews',                source:'Reuters M&A',           country:'us', lang:'en'},
-  // ── Bloomberg ──
-  {url:'https://feeds.bloomberg.com/markets/news.rss',                 source:'Bloomberg Markets',     country:'us', lang:'en'},
-  {url:'https://feeds.bloomberg.com/politics/news.rss',                source:'Bloomberg Politics',    country:'us', lang:'en'},
-  // ── Wall Street Journal ──
-  {url:'https://feeds.wsj.com/wsj/xml/rss/3_7085.xml',                source:'Wall Street Journal',   country:'us', lang:'en'},
-  {url:'https://feeds.wsj.com/wsj/xml/rss/3_7014.xml',                source:'WSJ Markets',           country:'us', lang:'en'},
-  {url:'https://feeds.wsj.com/wsj/xml/rss/3_7031.xml',                source:'WSJ Economy',           country:'us', lang:'en'},
-  // ── New York Times ──
-  {url:'https://rss.nytimes.com/services/xml/rss/nyt/Business.xml',    source:'New York Times Éco',    country:'us', lang:'en'},
-  {url:'https://rss.nytimes.com/services/xml/rss/nyt/Economy.xml',     source:'NYT Economy',           country:'us', lang:'en'},
-  // ── Washington Post ──
-  {url:'https://feeds.washingtonpost.com/rss/business',                source:'Washington Post Éco',   country:'us', lang:'en'},
-  {url:'https://feeds.washingtonpost.com/rss/business/economy',        source:'WaPo Economy',          country:'us', lang:'en'},
-  // ── Financial Times ──
-  {url:'https://www.ft.com/rss/home/europe',                           source:'Financial Times',       country:'gb', lang:'en'},
-  {url:'https://www.ft.com/rss/home/markets',                          source:'FT Markets',            country:'gb', lang:'en'},
-  // ── The Economist — analyses géopolitiques financières ──
-  {url:'https://www.economist.com/finance-and-economics/rss.xml',      source:'The Economist',         country:'gb', lang:'en'},
-  {url:'https://www.economist.com/business/rss.xml',                   source:'Economist Business',    country:'gb', lang:'en'},
-  // ── CNBC & MarketWatch ──
-  {url:'https://www.cnbc.com/id/100003114/device/rss/rss.html',        source:'CNBC Markets',          country:'us', lang:'en'},
-  {url:'https://feeds.content.dowjones.io/public/rss/mw_realtimeheadlines', source:'MarketWatch',     country:'us', lang:'en'},
-  // ════ ASIE — Sources indépendantes à haute valeur ════
-  // ── Chine : Caixin (seule revue indépendante du PCC) ──
-  {url:'https://www.caixinglobal.com/rss/home.xml',                    source:'Caixin Global 🇨🇳',     country:'cn', lang:'en'},
-  {url:'https://www.caixinglobal.com/rss/finance.xml',                 source:'Caixin Finance 🇨🇳',    country:'cn', lang:'en'},
-  // ── Hong Kong : SCMP (indépendant malgré Alibaba) ──
-  {url:'https://www.scmp.com/rss/91/feed',                             source:'S. China Morning Post', country:'cn', lang:'en'},
-  {url:'https://www.scmp.com/rss/92/feed',                             source:'SCMP Business',         country:'cn', lang:'en'},
-  // ── Japon : Nikkei Asia (référence chaînes d\'appro) ──
-  {url:'https://asia.nikkei.com/rss/feed/nar',                         source:'Nikkei Asia 🇯🇵',       country:'jp', lang:'en'},
-  {url:'https://asia.nikkei.com/rss/feed/Finance',                     source:'Nikkei Finance 🇯🇵',    country:'jp', lang:'en'},
-  // ── Inde : Economic Times + Mint ──
-  {url:'https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms', source:'Economic Times 🇮🇳', country:'in', lang:'en'},
-  {url:'https://economictimes.indiatimes.com/news/economy/rssfeeds/1373380680.cms', source:'ET Economy 🇮🇳', country:'in', lang:'en'},
-  {url:'https://www.livemint.com/rss/markets',                         source:'Mint Markets 🇮🇳',      country:'in', lang:'en'},
-  // ── Corée du Sud : Korea Herald (Samsung, chipmakers) ──
-  {url:'https://www.koreaherald.com/common/rss_xml.php?ct=102',        source:'Korea Herald 🇰🇷',      country:'jp', lang:'en'},
-  // ════ MOYEN-ORIENT & GOLFE ════
-  // ── Arab News (fonds souverains, pétrole, Vision 2030) ──
-  {url:'https://www.arabnews.com/cat/12/rss.xml',                      source:'Arab News 🇸🇦',         country:'us', lang:'en'},
-  // ── Gulf News Business ──
-  {url:'https://gulfnews.com/rss/business',                            source:'Gulf News Biz 🇦🇪',     country:'us', lang:'en'},
+  // ── Reuters — agence mondiale, RSS ouvert ──
+  {url:'https://feeds.reuters.com/reuters/businessNews',                         source:'Reuters Business',        country:'us', lang:'en'},
+  {url:'https://feeds.reuters.com/reuters/companyNews',                          source:'Reuters Companies',       country:'us', lang:'en'},
+  {url:'https://feeds.reuters.com/reuters/mergersNews',                          source:'Reuters M&A',             country:'us', lang:'en'},
+  // ── AP News — agence mondiale libre, remplace Bloomberg ──
+  {url:'https://feeds.apnews.com/rss/business',                                  source:'AP Business',             country:'us', lang:'en'},
+  {url:'https://feeds.apnews.com/rss/finance',                                   source:'AP Finance',              country:'us', lang:'en'},
+  // ── Yahoo Finance — remplace WSJ/Bloomberg ──
+  {url:'https://finance.yahoo.com/news/rssindex',                                source:'Yahoo Finance',           country:'us', lang:'en'},
+  {url:'https://finance.yahoo.com/rss/topstories',                               source:'Yahoo Finance Top',       country:'us', lang:'en'},
+  // ── Investing.com — temps réel, remplace Bloomberg Markets ──
+  {url:'https://www.investing.com/rss/news_25.rss',                              source:'Investing.com',           country:'us', lang:'en'},
+  {url:'https://www.investing.com/rss/news_14.rss',                              source:'Investing Stocks',        country:'us', lang:'en'},
+  // ── MarketWatch — libre, équivalent WSJ ──
+  {url:'https://feeds.content.dowjones.io/public/rss/mw_realtimeheadlines',      source:'MarketWatch',             country:'us', lang:'en'},
+  {url:'https://feeds.content.dowjones.io/public/rss/mw_topstories',             source:'MarketWatch Top',         country:'us', lang:'en'},
+  // ── CNBC ──
+  {url:'https://www.cnbc.com/id/100003114/device/rss/rss.html',                  source:'CNBC Markets',            country:'us', lang:'en'},
+  {url:'https://www.cnbc.com/id/10000664/device/rss/rss.html',                   source:'CNBC Economy',            country:'us', lang:'en'},
+  // ── New York Times — RSS ouvert ──
+  {url:'https://rss.nytimes.com/services/xml/rss/nyt/Business.xml',              source:'New York Times',          country:'us', lang:'en'},
+  {url:'https://rss.nytimes.com/services/xml/rss/nyt/Economy.xml',               source:'NYT Economy',             country:'us', lang:'en'},
+  // ── Washington Post — RSS ouvert ──
+  {url:'https://feeds.washingtonpost.com/rss/business',                          source:'Washington Post',         country:'us', lang:'en'},
+  {url:'https://feeds.washingtonpost.com/rss/business/economy',                  source:'WaPo Economy',            country:'us', lang:'en'},
+  // ── The Guardian Business — libre, remplace FT ──
+  {url:'https://www.theguardian.com/uk/business/rss',                            source:'The Guardian Business',   country:'gb', lang:'en'},
+  {url:'https://www.theguardian.com/business/economics/rss',                     source:'Guardian Economics',      country:'gb', lang:'en'},
+  // ── The Economist — RSS ouvert sur certaines sections ──
+  {url:'https://www.economist.com/finance-and-economics/rss.xml',                source:'The Economist',           country:'gb', lang:'en'},
+  // ── Barron's — investisseurs, remplace WSJ ──
+  {url:'https://www.barrons.com/xml/rss/3_7566.xml',                             source:'Barron\'s',               country:'us', lang:'en'},
+  // ════ ASIE ════
+  // ── Caixin — Chine indépendante ──
+  {url:'https://www.caixinglobal.com/rss/home.xml',                              source:'Caixin Global 🇨🇳',       country:'cn', lang:'en'},
+  // ── SCMP — Hong Kong ──
+  {url:'https://www.scmp.com/rss/91/feed',                                       source:'S. China Morning Post 🇭🇰', country:'cn', lang:'en'},
+  // ── Nikkei Asia — Japon ──
+  {url:'https://asia.nikkei.com/rss/feed/nar',                                   source:'Nikkei Asia 🇯🇵',         country:'jp', lang:'en'},
+  // ── Economic Times — Inde ──
+  {url:'https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms',   source:'Economic Times 🇮🇳',      country:'in', lang:'en'},
+  {url:'https://economictimes.indiatimes.com/news/economy/rssfeeds/1373380680.cms', source:'ET Economy 🇮🇳',      country:'in', lang:'en'},
+  // ── Korea Herald — Corée ──
+  {url:'https://www.koreaherald.com/common/rss_xml.php?ct=102',                  source:'Korea Herald 🇰🇷',        country:'jp', lang:'en'},
+  // ════ MOYEN-ORIENT ════
+  {url:'https://www.arabnews.com/cat/12/rss.xml',                                source:'Arab News 🇸🇦',           country:'us', lang:'en'},
   // ════ EUROPE CONTINENTALE ════
-  {url:'https://www.handelsblatt.com/rss',                             source:'Handelsblatt 🇩🇪',      country:'de', lang:'de'},
-  {url:'https://www.expansion.com/rss/2.0/portada.xml',               source:'Expansión 🇪🇸',         country:'es', lang:'es'},
-  {url:'https://www.ilsole24ore.com/rss/economia--finanza.xml',        source:'Il Sole 24 Ore 🇮🇹',    country:'it', lang:'it'},
-  // ── Réglementaires & Institutionnels ──
-  {url:'https://www.amf-france.org/fr/rss',                            source:'AMF France',            country:'fr', lang:'fr', reg:true},
+  {url:'https://www.handelsblatt.com/rss',                                       source:'Handelsblatt 🇩🇪',        country:'de', lang:'de'},
+  {url:'https://www.expansion.com/rss/2.0/portada.xml',                         source:'Expansión 🇪🇸',           country:'es', lang:'es'},
+  {url:'https://www.ilsole24ore.com/rss/economia--finanza.xml',                  source:'Il Sole 24 Ore 🇮🇹',      country:'it', lang:'it'},
+  // ════ RÉGLEMENTAIRES ════
+  {url:'https://www.amf-france.org/fr/rss',                                      source:'AMF France',              country:'fr', lang:'fr', reg:true},
   {url:'https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=8-K&dateb=&owner=include&count=10&search_text=&output=atom', source:'SEC EDGAR 8-K', country:'us', lang:'en', reg:true},
   {url:'https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=13-D&dateb=&owner=include&count=10&search_text=&output=atom', source:'SEC EDGAR 13-D', country:'us', lang:'en', reg:true},
-  // ── Sources françaises ──
-  {url:'https://www.lesechos.fr/rss/rss_finance.xml',                  source:'Les Échos',             country:'fr', lang:'fr'},
-  {url:'https://www.latribune.fr/rss.html',                            source:'La Tribune',            country:'fr', lang:'fr'},
-  {url:'https://bfmbusiness.bfmtv.com/rss/info/flux-rss/flux-toutes-les-actualites/', source:'BFM Business', country:'fr', lang:'fr'},
+  // ════ FRANCE ════
+  {url:'https://www.lesechos.fr/rss/rss_finance.xml',                            source:'Les Échos',               country:'fr', lang:'fr'},
+  {url:'https://www.latribune.fr/rss.html',                                      source:'La Tribune',              country:'fr', lang:'fr'},
+  {url:'https://bfmbusiness.bfmtv.com/rss/info/flux-rss/flux-toutes-les-actualites/', source:'BFM Business',      country:'fr', lang:'fr'},
 ];
 
 const RSS2JSON = 'https://api.rss2json.com/v1/api.json?rss_url=';
@@ -855,7 +897,19 @@ function renderNews(){
         ${a.topic?`<span class="tag ${a.country==='cn'?'cn':'tp'}">${a.topic}</span>`:''}
         ${a.real?'<span class="tag new">🔴 Live</span>':''}
         ${a.translated?'<span class="tag" style="font-size:9px;color:var(--purple);border-color:var(--purple);background:var(--purple-bg)">✨ traduit</span>':''}
-        ${a.link&&a.link!='#'?'<span class="tag" style="margin-left:auto;color:var(--accent);border-color:var(--accent)">Lire l\'article →</span>':''}
+        ${a.link&&a.link!='#'?`
+          <span style="margin-left:auto;display:flex;gap:6px;align-items:center">
+            <a href="${a.link}" target="_blank" rel="noopener"
+               onclick="event.stopPropagation()"
+               style="font-size:10px;padding:3px 7px;border-radius:3px;border:1px solid var(--accent);color:var(--accent);text-decoration:none;white-space:nowrap">
+              Lire →
+            </a>
+            <a href="https://translate.google.com/translate?sl=auto&tl=fr&u=${encodeURIComponent(a.link)}" target="_blank" rel="noopener"
+               onclick="event.stopPropagation()"
+               style="font-size:10px;padding:3px 7px;border-radius:3px;border:1px solid #4285f4;color:#4285f4;background:rgba(66,133,244,.08);text-decoration:none;white-space:nowrap;font-weight:600">
+              🇫🇷 Traduire
+            </a>
+          </span>`:''}
       </div>
     </a>`).join('');
 }
@@ -965,7 +1019,14 @@ function renderReg(amf, sec){
       <div class="ctags">
         <span class="tag reg">${a.type||'Réglementaire'}</span>
         ${isFresh(a.pubDate)?'<span class="tag new">🔥 Récent</span>':''}
-        <span class="tag" style="margin-left:auto;color:var(--accent);border-color:var(--accent)">Lire →</span>
+        <span style="margin-left:auto;display:flex;gap:6px;align-items:center">
+          <span style="font-size:10px;padding:3px 7px;border-radius:3px;border:1px solid var(--accent);color:var(--accent)">Lire →</span>
+          <a href="https://translate.google.com/translate?sl=auto&tl=fr&u=${encodeURIComponent(a.link)}" target="_blank" rel="noopener"
+             onclick="event.stopPropagation()"
+             style="font-size:10px;padding:3px 7px;border-radius:3px;border:1px solid #4285f4;color:#4285f4;background:rgba(66,133,244,.08);text-decoration:none;font-weight:600">
+            🇫🇷 Traduire
+          </a>
+        </span>
       </div>
     </a>`;
   document.getElementById('regListAMF').innerHTML=amf.map(renderCard).join('');
@@ -1115,7 +1176,13 @@ async function loadAINews(){
         ${isFresh(a.pubDate)?'<span class="tag new">🔥 Récent</span>':''}
         <span class="tag new">🔴 Live</span>
         ${a.translated?'<span class="tag" style="font-size:9px;color:var(--purple);border-color:var(--purple)">✨ traduit</span>':''}
-        ${a.link&&a.link!='#'?'<span class="tag" style="margin-left:auto;color:var(--accent);border-color:var(--accent)">Lire →</span>':''}
+        ${a.link&&a.link!='#'?`
+          <span style="margin-left:auto;display:flex;gap:6px;align-items:center">
+            <a href="${a.link}" target="_blank" rel="noopener" onclick="event.stopPropagation()"
+               style="font-size:10px;padding:3px 7px;border-radius:3px;border:1px solid var(--accent);color:var(--accent);text-decoration:none">Lire →</a>
+            <a href="https://translate.google.com/translate?sl=auto&tl=fr&u=${encodeURIComponent(a.link)}" target="_blank" rel="noopener" onclick="event.stopPropagation()"
+               style="font-size:10px;padding:3px 7px;border-radius:3px;border:1px solid #4285f4;color:#4285f4;background:rgba(66,133,244,.08);text-decoration:none;font-weight:600">🇫🇷 Traduire</a>
+          </span>`:''}
       </div>
     </a>`;
   list.innerHTML=fetched.map(renderCard).join('');
@@ -1130,19 +1197,152 @@ async function loadAINews(){
   list.innerHTML=fetched.map((a,i)=>renderCard(translateCache[a.link||a.title.slice(0,50)]||a,i)).join('');
 }
 
+// ══════════════════════════════════════════════════════
+// TAB FR — VALEURS FRANÇAISES
+// ══════════════════════════════════════════════════════
+
+// Calendrier résultats SBF 120 — prochaines semaines
+const FR_EARNINGS = [
+  {date:'2026-03-06', name:'Atos',           index:'SBF 120', ticker:'ATO',  consensus:'Perte attendue ~900M€', signal:'⚠️', signalColor:'#e53935', note:'Restructuration en cours — résultats très incertains'},
+  {date:'2026-03-06', name:'Valneva',         index:'SBF 120', ticker:'VLA',  consensus:'CA +8% attendu',        signal:'🟡', signalColor:'#f59e0b', note:'Vaccin Chikungunya : données US clés'},
+  {date:'2026-03-10', name:'Edenred',         index:'CAC 40',  ticker:'EDEN', consensus:'EBITDA +12%',           signal:'🟢', signalColor:'#10b981', note:'Dynamique Brésil + Europe de l\'Est'},
+  {date:'2026-03-11', name:'Nexans',          index:'SBF 120', ticker:'NEX',  consensus:'CA +6%, marges stables',signal:'🟡', signalColor:'#f59e0b', note:'Câbles haute tension : carnet plein'},
+  {date:'2026-03-12', name:'Vallourec',       index:'SBF 120', ticker:'VK',   consensus:'EBITDA +15%',           signal:'🟢', signalColor:'#10b981', note:'Pétrole offshore : forte demande US'},
+  {date:'2026-03-13', name:'Rexel',           index:'CAC 40',  ticker:'RXL',  consensus:'CA stable, marges +',   signal:'🟡', signalColor:'#f59e0b', note:'Résidentiel EU faible vs data centers'},
+  {date:'2026-03-14', name:'Teleperformance', index:'CAC 40',  ticker:'TEP',  consensus:'CA -3% vs rumeurs IA',  signal:'🔴', signalColor:'#e53935', note:'Pression concurrentielle IA très forte'},
+  {date:'2026-03-17', name:'Ipsen',           index:'SBF 120', ticker:'IPN',  consensus:'Résultats solides +11%', signal:'🟢', signalColor:'#10b981', note:'Oncologie : Somatuline hors brevet compensé'},
+  {date:'2026-03-18', name:'Coface',          index:'SBF 120', ticker:'COFA', consensus:'Ratio sinistres stable', signal:'🟡', signalColor:'#f59e0b', note:'Exposition Europe de l\'Est à surveiller'},
+  {date:'2026-03-19', name:'Imerys',          index:'SBF 120', ticker:'NK',   consensus:'CA -2%, restructuration',signal:'🔴', signalColor:'#e53935', note:'Exposition talc USA : litiges en cours'},
+  {date:'2026-03-20', name:'Soitec',          index:'SBF 120', ticker:'SOI',  consensus:'CA +18% semi-cond.',    signal:'🟢', signalColor:'#10b981', note:'SOI wafers : cycle haut, Apple client clé'},
+  {date:'2026-03-25', name:'Dassault Systèmes',index:'CAC 40', ticker:'DSY',  consensus:'ARR SaaS +14%',         signal:'🟢', signalColor:'#10b981', note:'Cloud PLM : très forte visibilité'},
+  {date:'2026-03-26', name:'Eutelsat',        index:'SBF 120', ticker:'ETL',  consensus:'Perte nette attendue',  signal:'⚠️', signalColor:'#e53935', note:'Concurrence Starlink : pression max'},
+  {date:'2026-03-27', name:'Faurecia (Forvia)',index:'SBF 120',ticker:'FRVIA',consensus:'EBITDA +7% attendu',    signal:'🟡', signalColor:'#f59e0b', note:'Auto: reprise Chine compense EU faible'},
+  {date:'2026-04-02', name:'LVMH',            index:'CAC 40',  ticker:'MC',   consensus:'CA +5%, Asie prudent',  signal:'🟡', signalColor:'#f59e0b', note:'Chine : reprise lente du luxe post-COVID'},
+];
+
+// Sources RSS spécialisées valeurs françaises
+const FR_RSS_SOURCES = [
+  {url:'https://www.boursorama.com/rss/actus-societes',          source:'Boursorama Sociétés',  lang:'fr'},
+  {url:'https://www.boursorama.com/rss/marches',                 source:'Boursorama Marchés',   lang:'fr'},
+  {url:'https://www.abcbourse.com/rss/news.xml',                 source:'ABC Bourse',           lang:'fr'},
+  {url:'https://www.lesechos.fr/rss/rss_bourse.xml',            source:'Les Échos Bourse',     lang:'fr'},
+  {url:'https://www.latribune.fr/rss/rubriques/entreprises.html',source:'La Tribune Entreprises',lang:'fr'},
+  {url:'https://feeds.reuters.com/reuters/businessNews',         source:'Reuters FR',           lang:'en'},
+  {url:'https://www.zonebourse.com/rss/actualites.xml',          source:'Zonebourse',           lang:'fr'},
+];
+
+function renderFRCalendar(){
+  const tbody=document.getElementById('frCalBody');
+  if(!tbody)return;
+  const today=new Date();
+  today.setHours(0,0,0,0);
+  const upcoming=FR_EARNINGS.filter(e=>new Date(e.date)>=today).slice(0,15);
+  tbody.innerHTML=upcoming.map(e=>{
+    const dt=new Date(e.date);
+    const jours=['dim','lun','mar','mer','jeu','ven','sam'];
+    const mois=['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
+    const dateStr=`${jours[dt.getDay()]}. ${dt.getDate()} ${mois[dt.getMonth()]}`;
+    const isToday=dt.toDateString()===today.toDateString();
+    const isTomorrow=dt.toDateString()===new Date(today.getTime()+86400000).toDateString();
+    const urgence=isToday?'background:rgba(239,68,68,.08);':(isTomorrow?'background:rgba(245,158,11,.06);':'');
+    return `<tr style="border-bottom:1px solid var(--border);${urgence}cursor:pointer" title="${e.note}"
+      onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='${urgence.replace('background:','').replace(';','')}'">
+      <td style="padding:8px 6px;white-space:nowrap;font-size:11px">
+        ${isToday?'<strong style="color:#e53935">📍 Aujourd\'hui</strong>':isTomorrow?'<strong style="color:#f59e0b">Demain</strong>':dateStr}
+      </td>
+      <td style="padding:8px 6px;font-weight:700;font-size:12px;color:var(--text)">${e.name}
+        <span style="font-size:10px;color:var(--muted);font-weight:400"> ${e.ticker}</span>
+      </td>
+      <td style="padding:8px 6px;font-size:10px">
+        <span style="padding:2px 5px;border-radius:3px;background:${e.index==='CAC 40'?'rgba(0,35,149,.12)':'var(--surface)'};color:${e.index==='CAC 40'?'#002395':'var(--muted)'}">
+          ${e.index}
+        </span>
+      </td>
+      <td style="padding:8px 6px;font-size:11px;color:var(--text)">${e.consensus}</td>
+      <td style="padding:8px 6px;font-size:14px" title="${e.note}">${e.signal}</td>
+    </tr>`;
+  }).join('');
+
+  // Légende
+  document.getElementById('frCalendar').insertAdjacentHTML('beforeend',
+    `<div style="font-size:10px;color:var(--muted);margin-top:6px;display:flex;gap:12px;flex-wrap:wrap">
+      <span>🟢 Signal positif</span><span>🟡 Neutre / mixte</span>
+      <span>🔴 Signal négatif</span><span>⚠️ Très incertain</span>
+      <span style="font-style:italic">· Survolez pour le détail</span>
+    </div>`);
+}
+
+async function loadFRNews(){
+  const list=document.getElementById('frNewsList');
+  if(!list)return;
+  list.innerHTML=`<div class="loader"><div class="sp"></div><div>Chargement sources spécialisées France…</div></div>`;
+
+  const results=await Promise.allSettled(FR_RSS_SOURCES.map(s=>fetchRSS(s)));
+  let fetched=results.flatMap(r=>r.status==='fulfilled'?r.value:[]);
+
+  // Filtre : garde uniquement les articles liés aux valeurs françaises
+  const frKeywords=['cac','sbf','résultat','bénéfice','chiffre d\'affaires','dividende','opa','rachat','fusion',
+    'amf','euronext','paris','france','bourse','action','cours','hausse','baisse','titre',
+    'atos','lvmh','total','sanofi','airbus','bnp','société générale','crédit agricole',
+    'renault','stellantis','michelin','pernod','hermès','kering','publicis','capgemini',
+    'veolia','engie','edf','orange','vivendi','legrand','schneider','saint-gobain',
+    'danone','carrefour','essilor','dassault','vallourec','teleperformance'];
+
+  fetched=fetched.filter(a=>{
+    const txt=(a.title+' '+(a.description||'')).toLowerCase();
+    return frKeywords.some(k=>txt.includes(k));
+  });
+
+  if(fetched.length<2){
+    list.innerHTML=`<div class="loader" style="color:var(--muted)">🔄 Sources indisponibles — appuyez sur Actualiser</div>`;
+    return;
+  }
+
+  // Déduplique et trie
+  const seen=new Set();
+  fetched=fetched.filter(a=>{const k=a.title.slice(0,40);if(seen.has(k))return false;seen.add(k);return true;});
+  fetched.sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
+
+  list.innerHTML=fetched.map((a,i)=>`
+    <a class="card" href="${a.link&&a.link!='#'?a.link:'javascript:void(0)'}"
+       ${a.link&&a.link!='#'?'target="_blank" rel="noopener"':''}
+       style="animation-delay:${i*.02}s;border-left:3px solid #002395">
+      <div class="cm">
+        <span class="cs" style="color:#002395">${a.source}</span>
+        <span class="cd"></span>
+        <span class="ct">${formatPubDate(a.pubDate)}</span>
+        <span>🇫🇷</span>
+      </div>
+      <div class="ctitle">${a.title}</div>
+      ${a.description?`<div class="cdesc">${a.description}</div>`:''}
+      <div class="ctags">
+        ${isFresh(a.pubDate)?'<span class="tag new">🔥 Récent</span>':''}
+        ${a.link&&a.link!='#'?`
+          <span style="margin-left:auto;display:flex;gap:6px;align-items:center">
+            <a href="${a.link}" target="_blank" rel="noopener" onclick="event.stopPropagation()"
+               style="font-size:10px;padding:3px 7px;border-radius:3px;border:1px solid var(--accent);color:var(--accent);text-decoration:none">Lire →</a>
+            <a href="https://translate.google.com/translate?sl=auto&tl=fr&u=${encodeURIComponent(a.link)}" target="_blank" rel="noopener" onclick="event.stopPropagation()"
+               style="font-size:10px;padding:3px 7px;border-radius:3px;border:1px solid #4285f4;color:#4285f4;background:rgba(66,133,244,.08);text-decoration:none;font-weight:600">🇫🇷 Traduire</a>
+          </span>`:''}
+      </div>
+      </div>
+    </a>`).join('');
+}
+
 // ── Tab switching ─────────────────────────────────────
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(x=>x.classList.remove('active'));
   t.classList.add('active');
   document.getElementById('tab-'+t.dataset.tab).classList.add('active');
-  const idx=['news','reg','opa','ai','search'].indexOf(t.dataset.tab);
+  const idx=['news','reg','opa','fr','ai','search'].indexOf(t.dataset.tab);
   document.querySelectorAll('.ni').forEach((n,i)=>n.classList.toggle('active',i===idx));
   if(t.dataset.tab==='search')document.getElementById('searchInput').focus();
   if(t.dataset.tab==='ai'){renderAITable();loadAINews();}
+  if(t.dataset.tab==='fr'){renderFRCalendar();loadFRNews();}
 }));
 document.querySelectorAll('.ni').forEach((n,i)=>n.addEventListener('click',()=>{
-  const tabs=['news','reg','opa','ai','search'];
+  const tabs=['news','reg','opa','fr','ai','search'];
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.ni').forEach(x=>x.classList.remove('active'));
@@ -1152,6 +1352,7 @@ document.querySelectorAll('.ni').forEach((n,i)=>n.addEventListener('click',()=>{
   const content=document.getElementById('tab-'+tabs[i]);
   if(content)content.classList.add('active');
   if(tabs[i]==='ai'){renderAITable();loadAINews();}
+  if(tabs[i]==='fr'){renderFRCalendar();loadFRNews();}
 }));
 
 // ── Init ──────────────────────────────────────────────
@@ -1163,6 +1364,7 @@ setInterval(loadReg,15*60*1000);
 setInterval(loadOPA,20*60*1000);
 setInterval(()=>{
   if(document.querySelector('.tab[data-tab="ai"]')?.classList.contains('active'))loadAINews();
+  if(document.querySelector('.tab[data-tab="fr"]')?.classList.contains('active'))loadFRNews();
 },15*60*1000);
 </script>
 </body>
