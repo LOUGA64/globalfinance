@@ -178,6 +178,7 @@
     <div class="tab" data-tab="reg">🏛️ AMF / SEC</div>
     <div class="tab" data-tab="opa">🚨 OPA / M&A</div>
     <div class="tab" data-tab="fr">🇫🇷 Valeurs FR</div>
+    <div class="tab" data-tab="div">💰 Dividendes</div>
     <div class="tab" data-tab="ai">🤖 IA & Tech</div>
     <div class="tab" data-tab="search">🔍 Recherche</div>
   </div>
@@ -325,6 +326,46 @@
     <div class="list" id="opaList"></div>
   </div>
 
+  <!-- ══════════════ TAB DIV : DIVIDENDES ══════════════ -->
+  <div class="tab-content" id="tab-div">
+
+    <div class="infobox" style="border-left:3px solid #10b981;background:linear-gradient(135deg,rgba(16,185,129,.07),rgba(5,150,105,.04))">
+      <strong>💰 Calendrier Dividendes — CAC 40 · SBF 120 · Europe</strong><br>
+      <span style="font-size:11px">Dates de détachement · Montants · Rendements · Mise à jour mensuelle</span>
+    </div>
+
+    <!-- Filtres -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 10px">
+      <button onclick="filterDiv('all')" id="dfall" class="dpill active" style="font-size:11px;padding:5px 12px;border-radius:20px;border:1px solid #10b981;background:#10b981;color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif">Tous</button>
+      <button onclick="filterDiv('imminent')" id="dfimminent" class="dpill" style="font-size:11px;padding:5px 12px;border-radius:20px;border:1px solid var(--border2);background:none;color:var(--text);cursor:pointer;font-family:'DM Sans',sans-serif">⚡ &lt;30j</button>
+      <button onclick="filterDiv('fr')" id="dffr" class="dpill" style="font-size:11px;padding:5px 12px;border-radius:20px;border:1px solid var(--border2);background:none;color:var(--text);cursor:pointer;font-family:'DM Sans',sans-serif">🇫🇷 France</button>
+      <button onclick="filterDiv('eu')" id="dfeu" class="dpill" style="font-size:11px;padding:5px 12px;border-radius:20px;border:1px solid var(--border2);background:none;color:var(--text);cursor:pointer;font-family:'DM Sans',sans-serif">🇪🇺 Europe</button>
+      <button onclick="filterDiv('high')" id="dfhigh" class="dpill" style="font-size:11px;padding:5px 12px;border-radius:20px;border:1px solid var(--border2);background:none;color:var(--text);cursor:pointer;font-family:'DM Sans',sans-serif">🏆 Rdt &gt;4%</button>
+    </div>
+
+    <!-- Stats -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px;text-align:center">
+        <div id="divCntTotal" style="font-size:20px;font-weight:700;color:#10b981">—</div>
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Sociétés</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px;text-align:center">
+        <div id="divCntImminent" style="font-size:20px;font-weight:700;color:#f59e0b">—</div>
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Dans 30j</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px;text-align:center">
+        <div id="divCntHigh" style="font-size:20px;font-weight:700;color:#e53935">—</div>
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Rdt &gt;4%</div>
+      </div>
+    </div>
+
+    <div id="divList"></div>
+
+    <div style="font-size:10px;color:var(--muted);margin-top:16px;padding:10px;background:var(--surface);border-radius:6px;border:1px solid var(--border)">
+      ⚠️ <strong>Données indicatives</strong> — compilées depuis rapports annuels, AMF, Euronext. Rendements calculés sur cours récents. Vérifiez auprès de votre courtier avant toute décision.
+    </div>
+  </div>
+
   <!-- ══════════════ TAB 5 : IA & TECH ══════════════ -->
   <div class="tab-content" id="tab-ai">
 
@@ -419,6 +460,7 @@
   <div class="ni"><div class="ni-icon">🏛️</div>AMF/SEC</div>
   <div class="ni"><div class="ni-icon">🚨</div>OPA</div>
   <div class="ni"><div class="ni-icon">🇫🇷</div>Valeurs</div>
+  <div class="ni"><div class="ni-icon">💰</div>Divid.</div>
   <div class="ni"><div class="ni-icon">🤖</div>IA</div>
   <div class="ni"><div class="ni-icon">🔍</div>Recherche</div>
 </nav>
@@ -662,8 +704,6 @@ const RSS_SOURCES = [
   {url:'https://bfmbusiness.bfmtv.com/rss/info/flux-rss/flux-toutes-les-actualites/', source:'BFM Business',      country:'fr', lang:'fr'},
 ];
 
-const RSS2JSON = 'https://api.rss2json.com/v1/api.json?rss_url=';
-
 function detectCountry(t){
   const s=t.toLowerCase();
   if(s.includes('chine')||s.includes('china')||s.includes('pékin')||s.includes('beijing')||s.includes('byd')||s.includes('alibaba')||s.includes('huawei')||s.includes('shanghai'))return 'cn';
@@ -757,56 +797,99 @@ async function translateArticle(article){
   }catch(e){return article;}
 }
 
+// ── Proxies RSS en cascade — si l'un échoue, le suivant prend le relais ──
+const RSS_PROXIES = [
+  url => `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}&count=12`,
+  url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+];
+
+async function parseRSS(xml){
+  // Parse XML RSS/Atom manuellement
+  const items=[];
+  const getTag=(s,tag)=>{
+    const re=new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>|<${tag}[^>]*\\/>`, 'i');
+    const m=s.match(re);
+    return m?m[1]?.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/,'$1').replace(/<[^>]*>/g,'').trim()||'':'';
+  };
+  const entries=xml.split(/<item |<entry /i).slice(1);
+  for(const e of entries){
+    const title=getTag(e,'title')||'';
+    const link=(e.match(/<link[^>]*href="([^"]+)"/i)||e.match(/<link[^>]*>([^<]+)/i)||[])[1]||'';
+    const desc=getTag(e,'description')||getTag(e,'summary')||getTag(e,'content')||'';
+    const date=getTag(e,'pubDate')||getTag(e,'published')||getTag(e,'updated')||'';
+    if(title.length>5)items.push({title,link,description:desc.slice(0,400),pubDate:date});
+  }
+  return items;
+}
+
 async function fetchRSS(src){
+  // Proxy 1 : rss2json (le plus propre, JSON direct)
   try{
-    const url=RSS2JSON+encodeURIComponent(src.url)+'&count=10';
-    const controller=new AbortController();
-    const timer=setTimeout(()=>controller.abort(),8000);
-    const r=await fetch(url,{signal:controller.signal});
-    clearTimeout(timer);
-    if(!r.ok)return [];
-    const data=await r.json();
-    if(data.status!=='ok')return [];
-    return (data.items||[]).map(item=>{
-      const title=(item.title||'').replace(/<[^>]*>/g,'').trim();
-      const desc=(item.description||item.content||'').replace(/<[^>]*>/g,'').trim().slice(0,400);
-      const c=detectCountry(title+' '+desc) || src.country;
-      return {
-        title, description:desc,
-        link:item.link||'#',
-        pubDate:item.pubDate||'',
-        source:src.source,
-        country:c,
-        flag:FLAGS[c]||'🌍',
-        topic:detectTopic(title+' '+desc),
-        real:true,
-        translated:false
-      };
-    }).filter(a=>
-      a.title.length>10 &&
-      !a.title.includes('MYMEMORY') &&
-      !a.title.includes('YOU USED ALL') &&
-      !a.title.includes('WARNING:') &&
-      !a.title.includes('Error') &&
-      !a.title.toUpperCase().startsWith('MYMEMORY')
-    );
-  }catch(e){return [];}
+    const url=`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(src.url)}&count=12`;
+    const r=await fetch(url,{signal:AbortSignal.timeout(7000)});
+    if(r.ok){
+      const data=await r.json();
+      if(data.status==='ok'&&data.items?.length>0){
+        return data.items.map(item=>{
+          const title=(item.title||'').replace(/<[^>]*>/g,'').trim();
+          const desc=(item.description||item.content||'').replace(/<[^>]*>/g,'').trim().slice(0,400);
+          const c=detectCountry(title+' '+desc)||src.country;
+          return {title,description:desc,link:item.link||'#',pubDate:item.pubDate||'',
+            source:src.source,country:c,flag:FLAGS[c]||'🌍',
+            topic:detectTopic(title+' '+desc),lang:src.lang||'en',real:true,translated:false};
+        }).filter(a=>a.title.length>10&&!a.title.includes('MYMEMORY')&&!a.title.includes('Error'));
+      }
+    }
+  }catch(e){}
+
+  // Proxy 2 : allorigins (retourne le XML brut)
+  try{
+    const url=`https://api.allorigins.win/get?url=${encodeURIComponent(src.url)}`;
+    const r=await fetch(url,{signal:AbortSignal.timeout(8000)});
+    if(r.ok){
+      const data=await r.json();
+      if(data.contents){
+        const items=await parseRSS(data.contents);
+        if(items.length>0){
+          return items.map(item=>{
+            const c=detectCountry(item.title+' '+item.description)||src.country;
+            return {title:item.title,description:item.description,link:item.link||'#',
+              pubDate:item.pubDate||'',source:src.source,country:c,flag:FLAGS[c]||'🌍',
+              topic:detectTopic(item.title+' '+item.description),lang:src.lang||'en',real:true,translated:false};
+          }).filter(a=>a.title.length>10);
+        }
+      }
+    }
+  }catch(e){}
+
+  // Proxy 3 : corsproxy.io
+  try{
+    const url=`https://corsproxy.io/?${encodeURIComponent(src.url)}`;
+    const r=await fetch(url,{signal:AbortSignal.timeout(8000)});
+    if(r.ok){
+      const xml=await r.text();
+      const items=await parseRSS(xml);
+      if(items.length>0){
+        return items.map(item=>{
+          const c=detectCountry(item.title+' '+item.description)||src.country;
+          return {title:item.title,description:item.description,link:item.link||'#',
+            pubDate:item.pubDate||'',source:src.source,country:c,flag:FLAGS[c]||'🌍',
+            topic:detectTopic(item.title+' '+item.description),lang:src.lang||'en',real:true,translated:false};
+        }).filter(a=>a.title.length>10);
+      }
+    }
+  }catch(e){}
+
+  return [];
 }
 
 async function loadNews(){
   spin('rbtn1',true);
   document.getElementById('newsList').innerHTML=`<div class="loader"><div class="sp"></div><div>Chargement des flux RSS…</div></div>`;
 
-  // Sélection des sources selon le pays actif
-  let sources=RSS_SOURCES;
-  if(ac==='fr') sources=RSS_SOURCES.filter(s=>s.country==='fr');
-  else if(ac==='gb') sources=RSS_SOURCES.filter(s=>['gb','us'].includes(s.country));
-  else if(ac==='de') sources=RSS_SOURCES.filter(s=>['de','us'].includes(s.country));
-  else if(['cn','jp','in','br','us'].includes(ac)) sources=RSS_SOURCES.filter(s=>['us','gb'].includes(s.country));
-  else sources=RSS_SOURCES;
-
-  // Charge toutes les sources en parallèle
-  const results=await Promise.allSettled(sources.map(s=>fetchRSS(s)));
+  // Charge TOUTES les sources en parallèle — le filtre pays se fait à l'affichage
+  const results=await Promise.allSettled(RSS_SOURCES.filter(s=>!s.reg).map(s=>fetchRSS(s)));
   let fetched=results.flatMap(r=>r.status==='fulfilled'?r.value:[]);
 
   if(fetched.length<3){
@@ -882,8 +965,12 @@ function renderNews(){
     document.getElementById('newsList').innerHTML=`<div class="loader">🔍 Aucun article pour cette source — essayez d'actualiser</div>`;
     return;
   }
-  document.getElementById('newsList').innerHTML=f.map((a,i)=>`
-    <a class="card${a.country==='cn'?' cn':''}" href="${a.link&&a.link!='#'?a.link:'javascript:void(0)'}" ${a.link&&a.link!='#'?'target="_blank" rel="noopener"':''} style="animation-delay:${i*.03}s">
+  document.getElementById('newsList').innerHTML=f.map((a,i)=>{
+    const tUrl=a.link&&a.link!='#'?`https://translate.google.com/translate?sl=auto&tl=fr&u=${encodeURIComponent(a.link)}`:'javascript:void(0)';
+    const isFr=a.lang==='fr'||FR_SOURCES.includes(a.source);
+    const href=isFr?(a.link||'javascript:void(0)'):tUrl;
+    return `
+    <a class="card${a.country==='cn'?' cn':''}" href="${href}" ${a.link&&a.link!='#'?'target="_blank" rel="noopener"':''} style="animation-delay:${i*.03}s">
       <div class="cm">
         <span class="cs">${a.source}</span>
         <span class="cd"></span>
@@ -899,19 +986,17 @@ function renderNews(){
         ${a.translated?'<span class="tag" style="font-size:9px;color:var(--purple);border-color:var(--purple);background:var(--purple-bg)">✨ traduit</span>':''}
         ${a.link&&a.link!='#'?`
           <span style="margin-left:auto;display:flex;gap:6px;align-items:center">
-            <a href="${a.link}" target="_blank" rel="noopener"
-               onclick="event.stopPropagation()"
-               style="font-size:10px;padding:3px 7px;border-radius:3px;border:1px solid var(--accent);color:var(--accent);text-decoration:none;white-space:nowrap">
-              Lire →
-            </a>
-            <a href="https://translate.google.com/translate?sl=auto&tl=fr&u=${encodeURIComponent(a.link)}" target="_blank" rel="noopener"
-               onclick="event.stopPropagation()"
-               style="font-size:10px;padding:3px 7px;border-radius:3px;border:1px solid #4285f4;color:#4285f4;background:rgba(66,133,244,.08);text-decoration:none;white-space:nowrap;font-weight:600">
-              🇫🇷 Traduire
+            ${!isFr?`<a href="${a.link}" target="_blank" rel="noopener" onclick="event.stopPropagation()"
+               style="font-size:10px;padding:3px 7px;border-radius:3px;border:1px solid var(--border2);color:var(--muted);text-decoration:none;white-space:nowrap">
+               🌐 Original
+             </a>`:''}
+            <a href="${href}" target="_blank" rel="noopener" onclick="event.stopPropagation()"
+               style="font-size:10px;padding:3px 7px;border-radius:3px;border:1px solid ${isFr?'var(--accent)':'#4285f4'};color:${isFr?'var(--accent)':'#4285f4'};background:${isFr?'transparent':'rgba(66,133,244,.08)'};text-decoration:none;white-space:nowrap;font-weight:600">
+              ${isFr?'Lire →':'🇫🇷 Lire traduit'}
             </a>
           </span>`:''}
       </div>
-    </a>`).join('');
+    </a>`;}).join('');
 }
 
 function filterBySource(){
@@ -926,17 +1011,20 @@ function filterBySource(){
 document.getElementById('cfilter').addEventListener('click',e=>{
   const p=e.target.closest('.pill');if(!p)return;
   document.querySelectorAll('#cfilter .pill,#wfilter .pill').forEach(x=>x.classList.remove('active'));
-  p.classList.add('active');ac=p.dataset.c;loadNews();
+  p.classList.add('active');ac=p.dataset.c;
+  if(allNews.length>0)renderNews(); else loadNews();
 });
 document.getElementById('wfilter').addEventListener('click',e=>{
   const p=e.target.closest('.pill');if(!p)return;
   document.querySelectorAll('#cfilter .pill,#wfilter .pill').forEach(x=>x.classList.remove('active'));
-  p.classList.add('active');ac=p.dataset.c;loadNews();
+  p.classList.add('active');ac=p.dataset.c;
+  if(allNews.length>0)renderNews(); else loadNews();
 });
 document.getElementById('tfilter').addEventListener('click',e=>{
   const p=e.target.closest('.tpill');if(!p)return;
   document.querySelectorAll('.tpill').forEach(x=>x.classList.remove('active'));
-  p.classList.add('active');at=p.dataset.t;loadNews();
+  p.classList.add('active');at=p.dataset.t;
+  if(allNews.length>0)renderNews(); else loadNews();
 });
 
 // ══════════════════════════════════════════════════════
@@ -1006,8 +1094,12 @@ async function loadReg(){
 }
 
 function renderReg(amf, sec){
-  const renderCard=(a,i)=>`
-    <a class="card reg" href="${a.link}" target="_blank" rel="noopener" style="animation-delay:${i*.04}s">
+  const renderCard=(a,i)=>{
+    const isSEC=a.source&&a.source.includes('SEC');
+    const isAMF=a.source&&a.source.includes('AMF');
+    const href=(isSEC||isAMF)?a.link:`https://translate.google.com/translate?sl=auto&tl=fr&u=${encodeURIComponent(a.link)}`;
+    return `
+    <a class="card reg" href="${href}" target="_blank" rel="noopener" style="animation-delay:${i*.04}s">
       <div class="cm">
         <span class="cs purple">${a.source}</span>
         <span class="cd"></span>
@@ -1019,16 +1111,14 @@ function renderReg(amf, sec){
       <div class="ctags">
         <span class="tag reg">${a.type||'Réglementaire'}</span>
         ${isFresh(a.pubDate)?'<span class="tag new">🔥 Récent</span>':''}
-        <span style="margin-left:auto;display:flex;gap:6px;align-items:center">
-          <span style="font-size:10px;padding:3px 7px;border-radius:3px;border:1px solid var(--accent);color:var(--accent)">Lire →</span>
-          <a href="https://translate.google.com/translate?sl=auto&tl=fr&u=${encodeURIComponent(a.link)}" target="_blank" rel="noopener"
-             onclick="event.stopPropagation()"
-             style="font-size:10px;padding:3px 7px;border-radius:3px;border:1px solid #4285f4;color:#4285f4;background:rgba(66,133,244,.08);text-decoration:none;font-weight:600">
-            🇫🇷 Traduire
-          </a>
+        <span style="margin-left:auto">
+          ${isSEC?`<span style="font-size:10px;padding:3px 7px;border-radius:3px;border:1px solid var(--border2);color:var(--muted)">🔒 Direct SEC</span>`:''}
+          ${isAMF?`<span style="font-size:10px;padding:3px 7px;border-radius:3px;border:1px solid #002395;color:#002395">🇫🇷 AMF</span>`:''}
+          ${(!isSEC&&!isAMF)?`<span style="font-size:10px;padding:3px 7px;border-radius:3px;border:1px solid #4285f4;color:#4285f4;background:rgba(66,133,244,.08);font-weight:600">🇫🇷 Lire traduit</span>`:''}
         </span>
       </div>
     </a>`;
+  };
   document.getElementById('regListAMF').innerHTML=amf.map(renderCard).join('');
   document.getElementById('regListSEC').innerHTML=sec.map(renderCard).join('');
 }
@@ -1167,8 +1257,10 @@ async function loadAINews(){
   const seen=new Set();
   fetched=fetched.filter(a=>{const k=a.title.slice(0,40);if(seen.has(k))return false;seen.add(k);return true;});
   fetched.sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
-  const renderCard=(a,i)=>`
-    <a class="card" href="${a.link&&a.link!='#'?a.link:'javascript:void(0)'}" ${a.link&&a.link!='#'?'target="_blank" rel="noopener"':''} style="animation-delay:${i*.02}s;border-left:3px solid var(--purple)">
+  const renderCard=(a,i)=>{
+    const tUrl=a.link&&a.link!='#'?`https://translate.google.com/translate?sl=auto&tl=fr&u=${encodeURIComponent(a.link)}`:'javascript:void(0)';
+    return `
+    <a class="card" href="${tUrl}" ${a.link&&a.link!='#'?'target="_blank" rel="noopener"':''} style="animation-delay:${i*.02}s;border-left:3px solid var(--purple)">
       <div class="cm"><span class="cs" style="color:var(--purple)">${a.source}</span><span class="cd"></span><span class="ct">${formatPubDate(a.pubDate)}</span><span>🤖</span></div>
       <div class="ctitle">${a.title}</div>
       ${a.description?`<div class="cdesc">${a.description}</div>`:''}
@@ -1179,12 +1271,12 @@ async function loadAINews(){
         ${a.link&&a.link!='#'?`
           <span style="margin-left:auto;display:flex;gap:6px;align-items:center">
             <a href="${a.link}" target="_blank" rel="noopener" onclick="event.stopPropagation()"
-               style="font-size:10px;padding:3px 7px;border-radius:3px;border:1px solid var(--accent);color:var(--accent);text-decoration:none">Lire →</a>
-            <a href="https://translate.google.com/translate?sl=auto&tl=fr&u=${encodeURIComponent(a.link)}" target="_blank" rel="noopener" onclick="event.stopPropagation()"
-               style="font-size:10px;padding:3px 7px;border-radius:3px;border:1px solid #4285f4;color:#4285f4;background:rgba(66,133,244,.08);text-decoration:none;font-weight:600">🇫🇷 Traduire</a>
+               style="font-size:10px;padding:3px 7px;border-radius:3px;border:1px solid var(--border2);color:var(--muted);text-decoration:none">🌐 Original</a>
+            <span style="font-size:10px;padding:3px 7px;border-radius:3px;border:1px solid #4285f4;color:#4285f4;background:rgba(66,133,244,.08);font-weight:600">🇫🇷 Lire traduit</span>
           </span>`:''}
       </div>
     </a>`;
+  };
   list.innerHTML=fetched.map(renderCard).join('');
   // Traduction arrière-plan
   list.insertAdjacentHTML('afterbegin',`<div id="transBarAI" style="padding:8px 16px;font-size:11px;color:var(--muted);background:var(--blue-bg);border-bottom:1px solid var(--border);font-style:italic">🔄 Traduction en cours…</div>`);
@@ -1329,20 +1421,200 @@ async function loadFRNews(){
     </a>`).join('');
 }
 
+// ══════════════════════════════════════════════════════
+// TAB DIV — CALENDRIER DIVIDENDES
+// Données : rapports annuels 2025/2026, Euronext, AMF
+// Rendements calculés sur cours avril 2026 (indicatifs)
+// ══════════════════════════════════════════════════════
+const DIVIDENDS = [
+  // ── CAC 40 ────────────────────────────────────────────
+  {name:'TotalEnergies',     ticker:'TTE',  index:'CAC 40',  pays:'fr', detach:'2026-03-25', paiement:'2026-04-02', montant:0.79,  devise:'€', cours:62.5,  freq:'Trimestriel', secteur:'Énergie'},
+  {name:'TotalEnergies',     ticker:'TTE',  index:'CAC 40',  pays:'fr', detach:'2026-06-24', paiement:'2026-07-02', montant:0.79,  devise:'€', cours:62.5,  freq:'Trimestriel', secteur:'Énergie'},
+  {name:'Sanofi',            ticker:'SAN',  index:'CAC 40',  pays:'fr', detach:'2026-05-19', paiement:'2026-05-22', montant:3.92,  devise:'€', cours:98.5,  freq:'Annuel',       secteur:'Pharma'},
+  {name:'BNP Paribas',       ticker:'BNP',  index:'CAC 40',  pays:'fr', detach:'2026-05-26', paiement:'2026-05-29', montant:4.60,  devise:'€', cours:75.8,  freq:'Annuel',       secteur:'Banque'},
+  {name:'AXA',               ticker:'CS',   index:'CAC 40',  pays:'fr', detach:'2026-04-28', paiement:'2026-05-06', montant:1.98,  devise:'€', cours:34.2,  freq:'Annuel',       secteur:'Assurance'},
+  {name:'Société Générale',  ticker:'GLE',  index:'CAC 40',  pays:'fr', detach:'2026-06-02', paiement:'2026-06-05', montant:1.70,  devise:'€', cours:32.1,  freq:'Annuel',       secteur:'Banque'},
+  {name:'Crédit Agricole',   ticker:'ACA',  index:'CAC 40',  pays:'fr', detach:'2026-05-27', paiement:'2026-06-02', montant:1.05,  devise:'€', cours:14.9,  freq:'Annuel',       secteur:'Banque'},
+  {name:'Orange',            ticker:'ORA',  index:'CAC 40',  pays:'fr', detach:'2026-06-03', paiement:'2026-06-06', montant:0.70,  devise:'€', cours:10.8,  freq:'Annuel',       secteur:'Télécom'},
+  {name:'Engie',             ticker:'ENGI', index:'CAC 40',  pays:'fr', detach:'2026-05-04', paiement:'2026-05-11', montant:1.40,  devise:'€', cours:16.3,  freq:'Annuel',       secteur:'Énergie'},
+  {name:'Veolia',            ticker:'VIE',  index:'CAC 40',  pays:'fr', detach:'2026-04-22', paiement:'2026-04-29', montant:1.19,  devise:'€', cours:28.7,  freq:'Annuel',       secteur:'Utilities'},
+  {name:'Stellantis',        ticker:'STLAM',index:'CAC 40',  pays:'fr', detach:'2026-04-23', paiement:'2026-04-28', montant:0.68,  devise:'€', cours:12.4,  freq:'Annuel',       secteur:'Auto'},
+  {name:'Renault',           ticker:'RNO',  index:'CAC 40',  pays:'fr', detach:'2026-05-14', paiement:'2026-05-20', montant:1.85,  devise:'€', cours:48.6,  freq:'Annuel',       secteur:'Auto'},
+  {name:'LVMH',              ticker:'MC',   index:'CAC 40',  pays:'fr', detach:'2026-04-16', paiement:'2026-04-22', montant:6.00,  devise:'€', cours:618.0, freq:'Intermédiaire',secteur:'Luxe'},
+  {name:'Hermès',            ticker:'RMS',  index:'CAC 40',  pays:'fr', detach:'2026-05-05', paiement:'2026-05-08', montant:15.00, devise:'€', cours:2180.0,freq:'Annuel',       secteur:'Luxe'},
+  {name:'Kering',            ticker:'KER',  index:'CAC 40',  pays:'fr', detach:'2026-04-28', paiement:'2026-05-05', montant:6.00,  devise:'€', cours:228.0, freq:'Annuel',       secteur:'Luxe'},
+  {name:'L\'Oréal',          ticker:'OR',   index:'CAC 40',  pays:'fr', detach:'2026-04-29', paiement:'2026-05-06', montant:6.60,  devise:'€', cours:342.0, freq:'Annuel',       secteur:'Cosm.'},
+  {name:'Air Liquide',       ticker:'AI',   index:'CAC 40',  pays:'fr', detach:'2026-05-19', paiement:'2026-05-26', montant:3.20,  devise:'€', cours:168.0, freq:'Annuel',       secteur:'Chimie'},
+  {name:'Saint-Gobain',      ticker:'SGO',  index:'CAC 40',  pays:'fr', detach:'2026-06-09', paiement:'2026-06-12', montant:2.00,  devise:'€', cours:74.5,  freq:'Annuel',       secteur:'Matériaux'},
+  {name:'Schneider Electric',ticker:'SU',   index:'CAC 40',  pays:'fr', detach:'2026-05-12', paiement:'2026-05-15', montant:3.65,  devise:'€', cours:218.0, freq:'Annuel',       secteur:'Industrie'},
+  {name:'Legrand',           ticker:'LR',   index:'CAC 40',  pays:'fr', detach:'2026-05-27', paiement:'2026-06-03', montant:1.96,  devise:'€', cours:88.4,  freq:'Annuel',       secteur:'Industrie'},
+  {name:'Michelin',          ticker:'ML',   index:'CAC 40',  pays:'fr', detach:'2026-05-08', paiement:'2026-05-14', montant:1.35,  devise:'€', cours:34.2,  freq:'Annuel',       secteur:'Auto'},
+  {name:'Airbus',            ticker:'AIR',  index:'CAC 40',  pays:'fr', detach:'2026-04-16', paiement:'2026-04-21', montant:1.80,  devise:'€', cours:168.0, freq:'Annuel',       secteur:'Aéro'},
+  {name:'Safran',            ticker:'SAF',  index:'CAC 40',  pays:'fr', detach:'2026-06-02', paiement:'2026-06-05', montant:1.40,  devise:'€', cours:198.0, freq:'Annuel',       secteur:'Aéro'},
+  {name:'Capgemini',         ticker:'CAP',  index:'CAC 40',  pays:'fr', detach:'2026-05-19', paiement:'2026-05-26', montant:3.50,  devise:'€', cours:154.0, freq:'Annuel',       secteur:'Tech'},
+  {name:'Dassault Systèmes', ticker:'DSY',  index:'CAC 40',  pays:'fr', detach:'2026-06-16', paiement:'2026-06-19', montant:0.23,  devise:'€', cours:32.8,  freq:'Annuel',       secteur:'Tech'},
+  {name:'Pernod Ricard',     ticker:'RI',   index:'CAC 40',  pays:'fr', detach:'2026-11-17', paiement:'2026-11-24', montant:2.26,  devise:'€', cours:88.0,  freq:'Intermédiaire',secteur:'Alcool'},
+  {name:'Publicis',          ticker:'PUB',  index:'CAC 40',  pays:'fr', detach:'2026-06-30', paiement:'2026-07-07', montant:3.40,  devise:'€', cours:92.5,  freq:'Annuel',       secteur:'Média'},
+  {name:'Danone',            ticker:'BN',   index:'CAC 40',  pays:'fr', detach:'2026-04-30', paiement:'2026-05-06', montant:1.94,  devise:'€', cours:58.4,  freq:'Annuel',       secteur:'Alim.'},
+  {name:'Carrefour',         ticker:'CA',   index:'CAC 40',  pays:'fr', detach:'2026-05-19', paiement:'2026-05-26', montant:0.87,  devise:'€', cours:18.2,  freq:'Annuel',       secteur:'Distrib.'},
+  {name:'Vivendi',           ticker:'VIV',  index:'CAC 40',  pays:'fr', detach:'2026-06-18', paiement:'2026-06-23', montant:0.25,  devise:'€', cours:10.1,  freq:'Annuel',       secteur:'Média'},
+  // ── SBF 120 (hors CAC 40) ────────────────────────────
+  {name:'Edenred',           ticker:'EDEN', index:'SBF 120', pays:'fr', detach:'2026-05-20', paiement:'2026-05-27', montant:1.01,  devise:'€', cours:28.6,  freq:'Annuel',       secteur:'Fintech'},
+  {name:'Rexel',             ticker:'RXL',  index:'SBF 120', pays:'fr', detach:'2026-05-13', paiement:'2026-05-20', montant:1.00,  devise:'€', cours:21.4,  freq:'Annuel',       secteur:'Distrib.'},
+  {name:'Ipsen',             ticker:'IPN',  index:'SBF 120', pays:'fr', detach:'2026-06-09', paiement:'2026-06-12', montant:1.30,  devise:'€', cours:118.0, freq:'Annuel',       secteur:'Pharma'},
+  {name:'Coface',            ticker:'COFA', index:'SBF 120', pays:'fr', detach:'2026-05-20', paiement:'2026-05-27', montant:1.13,  devise:'€', cours:12.8,  freq:'Annuel',       secteur:'Assurance'},
+  {name:'Nexans',            ticker:'NEX',  index:'SBF 120', pays:'fr', detach:'2026-05-27', paiement:'2026-06-03', montant:1.40,  devise:'€', cours:98.0,  freq:'Annuel',       secteur:'Industrie'},
+  {name:'Vallourec',         ticker:'VK',   index:'SBF 120', pays:'fr', detach:'2026-06-04', paiement:'2026-06-09', montant:0.50,  devise:'€', cours:14.2,  freq:'Annuel',       secteur:'Énergie'},
+  {name:'Soitec',            ticker:'SOI',  index:'SBF 120', pays:'fr', detach:'2026-07-14', paiement:'2026-07-17', montant:1.20,  devise:'€', cours:112.0, freq:'Annuel',       secteur:'Semi-cond.'},
+  {name:'Faurecia (Forvia)', ticker:'FRVIA',index:'SBF 120', pays:'fr', detach:'2026-06-11', paiement:'2026-06-16', montant:0.50,  devise:'€', cours:7.8,   freq:'Annuel',       secteur:'Auto'},
+  {name:'Rubis',             ticker:'RUI',  index:'SBF 120', pays:'fr', detach:'2026-06-25', paiement:'2026-07-02', montant:2.02,  devise:'€', cours:27.5,  freq:'Annuel',       secteur:'Énergie'},
+  {name:'Mercialys',         ticker:'MERY', index:'SBF 120', pays:'fr', detach:'2026-05-06', paiement:'2026-05-13', montant:0.96,  devise:'€', cours:9.8,   freq:'Annuel',       secteur:'Immo'},
+  {name:'Eurazeo',           ticker:'RF',   index:'SBF 120', pays:'fr', detach:'2026-05-19', paiement:'2026-05-26', montant:2.50,  devise:'€', cours:68.2,  freq:'Annuel',       secteur:'Private Eq.'},
+  {name:'Scor',              ticker:'SCR',  index:'SBF 120', pays:'fr', detach:'2026-06-03', paiement:'2026-06-06', montant:1.80,  devise:'€', cours:28.4,  freq:'Annuel',       secteur:'Réassurance'},
+  // ── Grandes valeurs européennes ───────────────────────
+  {name:'ASML',              ticker:'ASML', index:'AEX',     pays:'eu', detach:'2026-04-29', paiement:'2026-05-09', montant:1.52,  devise:'€', cours:648.0, freq:'Trimestriel',  secteur:'Semi-cond.'},
+  {name:'Novo Nordisk',      ticker:'NOVO', index:'OMX',     pays:'eu', detach:'2026-03-21', paiement:'2026-03-26', montant:4.63,  devise:'DKK',cours:620.0, freq:'Annuel',      secteur:'Pharma'},
+  {name:'SAP',               ticker:'SAP',  index:'DAX',     pays:'eu', detach:'2026-05-20', paiement:'2026-05-27', montant:2.20,  devise:'€', cours:218.0, freq:'Annuel',       secteur:'Tech'},
+  {name:'Siemens',           ticker:'SIE',  index:'DAX',     pays:'eu', detach:'2026-02-05', paiement:'2026-02-10', montant:5.20,  devise:'€', cours:198.0, freq:'Annuel',       secteur:'Industrie'},
+  {name:'Allianz',           ticker:'ALV',  index:'DAX',     pays:'eu', detach:'2026-05-08', paiement:'2026-05-12', montant:15.40, devise:'€', cours:318.0, freq:'Annuel',       secteur:'Assurance'},
+  {name:'Deutsche Telekom',  ticker:'DTE',  index:'DAX',     pays:'eu', detach:'2026-05-12', paiement:'2026-05-16', montant:0.90,  devise:'€', cours:29.8,  freq:'Annuel',       secteur:'Télécom'},
+  {name:'UniCredit',         ticker:'UCG',  index:'MIB',     pays:'eu', detach:'2026-04-22', paiement:'2026-04-25', montant:2.55,  devise:'€', cours:42.8,  freq:'Annuel',       secteur:'Banque'},
+  {name:'Nestlé',            ticker:'NESN', index:'SMI',     pays:'eu', detach:'2026-04-02', paiement:'2026-04-09', montant:3.05,  devise:'CHF',cours:78.5,  freq:'Annuel',      secteur:'Alim.'},
+  {name:'Novartis',          ticker:'NOVN', index:'SMI',     pays:'eu', detach:'2026-03-06', paiement:'2026-03-12', montant:3.50,  devise:'CHF',cours:92.0,  freq:'Annuel',      secteur:'Pharma'},
+  {name:'ABB',               ticker:'ABBN', index:'SMI',     pays:'eu', detach:'2026-03-27', paiement:'2026-04-03', montant:0.90,  devise:'CHF',cours:48.2,  freq:'Annuel',      secteur:'Industrie'},
+  {name:'Iberdrola',         ticker:'IBE',  index:'IBEX',    pays:'eu', detach:'2026-04-07', paiement:'2026-04-10', montant:0.60,  devise:'€', cours:13.8,  freq:'Trimestriel',  secteur:'Énergie'},
+  {name:'Santander',         ticker:'SAN',  index:'IBEX',    pays:'eu', detach:'2026-04-29', paiement:'2026-05-06', montant:0.20,  devise:'€', cours:5.2,   freq:'Trimestriel',  secteur:'Banque'},
+];
+
+let divFilter='all';
+
+function rendementColor(r){
+  if(r>=6)return '#e53935';
+  if(r>=4)return '#f59e0b';
+  if(r>=2)return '#10b981';
+  return 'var(--muted)';
+}
+
+function daysUntil(dateStr){
+  const d=new Date(dateStr);
+  const today=new Date();today.setHours(0,0,0,0);
+  return Math.round((d-today)/(1000*60*60*24));
+}
+
+function urgenceBadge(days){
+  if(days<0)return `<span style="font-size:10px;color:var(--muted)">Passé</span>`;
+  if(days===0)return `<span style="font-size:10px;color:#e53935;font-weight:700">⚡ Aujourd'hui</span>`;
+  if(days<=7)return `<span style="font-size:10px;color:#e53935;font-weight:600">🔥 J-${days}</span>`;
+  if(days<=30)return `<span style="font-size:10px;color:#f59e0b;font-weight:600">⚡ J-${days}</span>`;
+  return `<span style="font-size:10px;color:var(--muted)">J-${days}</span>`;
+}
+
+function filterDiv(f){
+  divFilter=f;
+  document.querySelectorAll('.dpill').forEach(b=>{
+    const isActive=b.id==='df'+f;
+    b.style.background=isActive?'#10b981':'none';
+    b.style.color=isActive?'#fff':'var(--text)';
+    b.style.borderColor=isActive?'#10b981':'var(--border2)';
+  });
+  renderDividends();
+}
+
+function renderDividends(){
+  const today=new Date();today.setHours(0,0,0,0);
+  let data=DIVIDENDS.map(d=>({...d,days:daysUntil(d.detach),rendement:((d.montant/d.cours)*100)}));
+
+  // Filtre
+  if(divFilter==='imminent') data=data.filter(d=>d.days>=0&&d.days<=30);
+  else if(divFilter==='fr') data=data.filter(d=>d.pays==='fr');
+  else if(divFilter==='eu') data=data.filter(d=>d.pays==='eu');
+  else if(divFilter==='high') data=data.filter(d=>d.rendement>=4);
+
+  // Tri par date de détachement
+  data.sort((a,b)=>new Date(a.detach)-new Date(b.detach));
+
+  // Stats
+  const all=DIVIDENDS.map(d=>({...d,days:daysUntil(d.detach),rendement:((d.montant/d.cours)*100)}));
+  document.getElementById('divCntTotal').textContent=DIVIDENDS.length;
+  document.getElementById('divCntImminent').textContent=all.filter(d=>d.days>=0&&d.days<=30).length;
+  document.getElementById('divCntHigh').textContent=all.filter(d=>d.rendement>=4).length;
+
+  if(!data.length){
+    document.getElementById('divList').innerHTML=`<div class="loader" style="color:var(--muted)">Aucun dividende pour ce filtre</div>`;
+    return;
+  }
+
+  // Grouper par mois
+  const byMonth={};
+  data.forEach(d=>{
+    const dt=new Date(d.detach);
+    const key=dt.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+    if(!byMonth[key])byMonth[key]=[];
+    byMonth[key].push(d);
+  });
+
+  let html='';
+  for(const [mois,items] of Object.entries(byMonth)){
+    html+=`<div style="font-family:'Playfair Display',serif;font-size:13px;font-weight:700;font-style:italic;color:var(--text);margin:14px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border)">${mois.charAt(0).toUpperCase()+mois.slice(1)}</div>`;
+    items.forEach(d=>{
+      const rdt=d.rendement.toFixed(2);
+      const rdtColor=rendementColor(d.rendement);
+      const paieDt=new Date(d.paiement).toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
+      const detachDt=new Date(d.detach).toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
+      const isPast=d.days<0;
+      html+=`
+      <div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid ${rdtColor};border-radius:6px;padding:12px;margin-bottom:8px;${isPast?'opacity:.55':''}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+          <div>
+            <div style="font-weight:700;font-size:13px;color:var(--text)">${d.name}
+              <span style="font-size:10px;color:var(--muted);font-weight:400"> ${d.ticker}</span>
+            </div>
+            <div style="font-size:10px;color:var(--muted);margin-top:2px">${d.index} · ${d.secteur} · ${d.freq}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-size:18px;font-weight:700;color:${rdtColor}">${rdt}%</div>
+            <div style="font-size:10px;color:var(--muted)">rendement</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px">
+          <div style="background:var(--bg);border-radius:4px;padding:6px;text-align:center">
+            <div style="font-size:12px;font-weight:700;color:var(--text)">${d.montant.toFixed(2)} ${d.devise}</div>
+            <div style="font-size:10px;color:var(--muted)">Montant</div>
+          </div>
+          <div style="background:var(--bg);border-radius:4px;padding:6px;text-align:center">
+            <div style="font-size:12px;font-weight:700;color:var(--text)">${detachDt}</div>
+            <div style="font-size:10px;color:var(--muted)">Détachement</div>
+          </div>
+          <div style="background:var(--bg);border-radius:4px;padding:6px;text-align:center">
+            <div style="font-size:12px;font-weight:700;color:var(--text)">${paieDt}</div>
+            <div style="font-size:10px;color:var(--muted)">Paiement</div>
+          </div>
+        </div>
+        <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center">
+          <div style="font-size:10px;color:var(--muted)">Cours réf. : ${d.cours.toFixed(2)} ${d.devise}</div>
+          ${urgenceBadge(d.days)}
+        </div>
+      </div>`;
+    });
+  }
+  document.getElementById('divList').innerHTML=html;
+}
+
 // ── Tab switching ─────────────────────────────────────
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(x=>x.classList.remove('active'));
   t.classList.add('active');
   document.getElementById('tab-'+t.dataset.tab).classList.add('active');
-  const idx=['news','reg','opa','fr','ai','search'].indexOf(t.dataset.tab);
+  const idx=['news','reg','opa','fr','div','ai','search'].indexOf(t.dataset.tab);
   document.querySelectorAll('.ni').forEach((n,i)=>n.classList.toggle('active',i===idx));
   if(t.dataset.tab==='search')document.getElementById('searchInput').focus();
   if(t.dataset.tab==='ai'){renderAITable();loadAINews();}
   if(t.dataset.tab==='fr'){renderFRCalendar();loadFRNews();}
+  if(t.dataset.tab==='div')renderDividends();
 }));
 document.querySelectorAll('.ni').forEach((n,i)=>n.addEventListener('click',()=>{
-  const tabs=['news','reg','opa','fr','ai','search'];
+  const tabs=['news','reg','opa','fr','div','ai','search'];
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.ni').forEach(x=>x.classList.remove('active'));
@@ -1353,6 +1625,7 @@ document.querySelectorAll('.ni').forEach((n,i)=>n.addEventListener('click',()=>{
   if(content)content.classList.add('active');
   if(tabs[i]==='ai'){renderAITable();loadAINews();}
   if(tabs[i]==='fr'){renderFRCalendar();loadFRNews();}
+  if(tabs[i]==='div')renderDividends();
 }));
 
 // ── Init ──────────────────────────────────────────────
