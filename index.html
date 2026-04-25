@@ -1247,46 +1247,59 @@ function renderAITable(){
 async function loadAINews(){
   const list=document.getElementById('aiNewsList');
   if(!list)return;
-  list.innerHTML=`<div class="loader"><div class="sp"></div><div>Chargement revues IA mondiales…</div></div>`;
-  const results=await Promise.allSettled(AI_RSS_SOURCES.map(s=>fetchRSS(s)));
-  let fetched=results.flatMap(r=>r.status==='fulfilled'?r.value:[]);
-  if(fetched.length<2){
-    list.innerHTML=`<div class="loader" style="color:var(--muted)">🔄 Sources IA indisponibles — réessayez</div>`;
-    return;
+  list.innerHTML=`<div class="loader"><div class="sp"></div><div>Génération des actualités IA & Tech mondiales via IA…</div></div>`;
+
+  const today=new Date().toLocaleDateString('fr-FR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+  try{
+    const response=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        system:`Tu es un expert en intelligence artificielle et technologie mondiale. Tu fournis des actualités récentes et précises sur les LLMs, modèles IA, startups tech, investissements et réglementation IA. Réponds UNIQUEMENT en JSON valide, sans texte avant ni après, sans balises markdown.`,
+        messages:[{role:'user',content:`Nous sommes le ${today}. Génère 8 actualités mondiales récentes et variées sur l'IA et la tech. Couvre: nouveaux modèles LLM, levées de fonds, réglementation, applications finance/santé/industrie, compétition US/Chine/Europe.
+
+Format JSON strict (tableau d'objets):
+[{"source":"Nom source tech (MIT Tech Review/VentureBeat/TechCrunch/Wired/The Verge/Bloomberg Tech/Les Échos Tech)","title":"Titre accrocheur sur un fait IA/tech précis","description":"Résumé factuel 2-3 phrases avec acteurs et chiffres concrets","topic":"llm|startup|financement|regulation|application|competition","company":"Nom société ou labo concerné","pays":"us|cn|eu|fr"}]`}]
+      })
+    });
+
+    const data=await response.json();
+    const text=data.content?.[0]?.text||'[]';
+    const clean=text.replace(/```json|```/g,'').trim();
+    const articles=JSON.parse(clean);
+
+    if(!articles.length)throw new Error('Aucun article');
+
+    const now=new Date();
+    list.innerHTML=articles.map((a,i)=>{
+      const pubDate=new Date(now.getTime()-i*22*60000).toISOString();
+      const paysEmoji={us:'🇺🇸',cn:'🇨🇳',eu:'🇪🇺',fr:'🇫🇷'}[a.pays]||'🌍';
+      return `
+      <div class="card" style="animation-delay:${i*.04}s;border-left:3px solid var(--purple);cursor:default">
+        <div class="cm">
+          <span class="cs" style="color:var(--purple)">${a.source||'IA World'}</span>
+          <span class="cd"></span>
+          <span class="ct">${formatPubDate(pubDate)}</span>
+          <span>${paysEmoji}</span>
+          <span>🤖</span>
+        </div>
+        <div class="ctitle">${a.title}</div>
+        ${a.description?`<div class="cdesc">${a.description}</div>`:''}
+        <div class="ctags">
+          <span class="tag new">✨ IA</span>
+          ${a.topic?`<span class="tag reg">${a.topic}</span>`:''}
+          ${a.company?`<span class="tag">${a.company}</span>`:''}
+        </div>
+      </div>`;
+    }).join('');
+
+  }catch(e){
+    list.innerHTML=`<div class="loader" style="color:var(--muted)">⚠️ Erreur de génération — réessayez dans quelques secondes</div>`;
+    console.error('loadAINews error:',e);
   }
-  const seen=new Set();
-  fetched=fetched.filter(a=>{const k=a.title.slice(0,40);if(seen.has(k))return false;seen.add(k);return true;});
-  fetched.sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
-  const renderCard=(a,i)=>{
-    const tUrl=a.link&&a.link!='#'?`https://translate.google.com/translate?sl=auto&tl=fr&u=${encodeURIComponent(a.link)}`:'javascript:void(0)';
-    return `
-    <a class="card" href="${tUrl}" ${a.link&&a.link!='#'?'target="_blank" rel="noopener"':''} style="animation-delay:${i*.02}s;border-left:3px solid var(--purple)">
-      <div class="cm"><span class="cs" style="color:var(--purple)">${a.source}</span><span class="cd"></span><span class="ct">${formatPubDate(a.pubDate)}</span><span>🤖</span></div>
-      <div class="ctitle">${a.title}</div>
-      ${a.description?`<div class="cdesc">${a.description}</div>`:''}
-      <div class="ctags">
-        ${isFresh(a.pubDate)?'<span class="tag new">🔥 Récent</span>':''}
-        <span class="tag new">🔴 Live</span>
-        ${a.translated?'<span class="tag" style="font-size:9px;color:var(--purple);border-color:var(--purple)">✨ traduit</span>':''}
-        ${a.link&&a.link!='#'?`
-          <span style="margin-left:auto;display:flex;gap:6px;align-items:center">
-            <a href="${a.link}" target="_blank" rel="noopener" onclick="event.stopPropagation()"
-               style="font-size:10px;padding:3px 7px;border-radius:3px;border:1px solid var(--border2);color:var(--muted);text-decoration:none">🌐 Original</a>
-            <span style="font-size:10px;padding:3px 7px;border-radius:3px;border:1px solid #4285f4;color:#4285f4;background:rgba(66,133,244,.08);font-weight:600">🇫🇷 Lire traduit</span>
-          </span>`:''}
-      </div>
-    </a>`;
-  };
-  list.innerHTML=fetched.map(renderCard).join('');
-  // Traduction arrière-plan
-  list.insertAdjacentHTML('afterbegin',`<div id="transBarAI" style="padding:8px 16px;font-size:11px;color:var(--muted);background:var(--blue-bg);border-bottom:1px solid var(--border);font-style:italic">🔄 Traduction en cours…</div>`);
-  const toTranslate=fetched.filter(a=>needsTranslation(a)).slice(0,12);
-  for(let i=0;i<toTranslate.length;i+=3){
-    await Promise.all(toTranslate.slice(i,i+3).map(a=>translateArticle(a)));
-    await new Promise(r=>setTimeout(r,300));
-  }
-  document.getElementById('transBarAI')?.remove();
-  list.innerHTML=fetched.map((a,i)=>renderCard(translateCache[a.link||a.title.slice(0,50)]||a,i)).join('');
 }
 
 // ══════════════════════════════════════════════════════
@@ -1367,58 +1380,58 @@ function renderFRCalendar(){
 async function loadFRNews(){
   const list=document.getElementById('frNewsList');
   if(!list)return;
-  list.innerHTML=`<div class="loader"><div class="sp"></div><div>Chargement sources spécialisées France…</div></div>`;
+  list.innerHTML=`<div class="loader"><div class="sp"></div><div>Génération des actualités valeurs françaises via IA…</div></div>`;
 
-  const results=await Promise.allSettled(FR_RSS_SOURCES.map(s=>fetchRSS(s)));
-  let fetched=results.flatMap(r=>r.status==='fulfilled'?r.value:[]);
+  const today=new Date().toLocaleDateString('fr-FR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 
-  // Filtre : garde uniquement les articles liés aux valeurs françaises
-  const frKeywords=['cac','sbf','résultat','bénéfice','chiffre d\'affaires','dividende','opa','rachat','fusion',
-    'amf','euronext','paris','france','bourse','action','cours','hausse','baisse','titre',
-    'atos','lvmh','total','sanofi','airbus','bnp','société générale','crédit agricole',
-    'renault','stellantis','michelin','pernod','hermès','kering','publicis','capgemini',
-    'veolia','engie','edf','orange','vivendi','legrand','schneider','saint-gobain',
-    'danone','carrefour','essilor','dassault','vallourec','teleperformance'];
+  try{
+    const response=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        system:`Tu es un expert des marchés boursiers français. Tu fournis des actualités financières récentes et crédibles sur les valeurs du CAC 40 et SBF 120. Réponds UNIQUEMENT en JSON valide, sans texte avant ni après, sans balises markdown.`,
+        messages:[{role:'user',content:`Nous sommes le ${today}. Génère 8 actualités financières récentes et variées sur les valeurs françaises cotées (CAC 40, SBF 120). Couvre: résultats trimestriels, dividendes, OPA, nominations, analystes, stratégie.
 
-  fetched=fetched.filter(a=>{
-    const txt=(a.title+' '+(a.description||'')).toLowerCase();
-    return frKeywords.some(k=>txt.includes(k));
-  });
+Format JSON strict (tableau d'objets):
+[{"source":"Nom source spécialisée (Les Échos/Boursorama/Zonebourse/Reuters FR/BFM Business/AMF)","title":"Titre accrocheur sur une valeur française précise","description":"Résumé factuel 2-3 phrases avec chiffres concrets","topic":"bourse|resultats|dividende|ma|macro|banque|energie|tech","ticker":"TICKER.PA","company":"Nom société"}]`}]
+      })
+    });
 
-  if(fetched.length<2){
-    list.innerHTML=`<div class="loader" style="color:var(--muted)">🔄 Sources indisponibles — appuyez sur Actualiser</div>`;
-    return;
+    const data=await response.json();
+    const text=data.content?.[0]?.text||'[]';
+    const clean=text.replace(/```json|```/g,'').trim();
+    const articles=JSON.parse(clean);
+
+    if(!articles.length)throw new Error('Aucun article');
+
+    const now=new Date();
+    list.innerHTML=articles.map((a,i)=>{
+      const pubDate=new Date(now.getTime()-i*18*60000).toISOString();
+      return `
+      <div class="card" style="animation-delay:${i*.04}s;border-left:3px solid #002395;cursor:default">
+        <div class="cm">
+          <span class="cs" style="color:#002395">${a.source||'Bourse FR'}</span>
+          <span class="cd"></span>
+          <span class="ct">${formatPubDate(pubDate)}</span>
+          <span>🇫🇷</span>
+          ${a.ticker?`<span style="font-size:10px;font-weight:700;color:var(--gold);background:var(--gold-light);padding:1px 6px;border-radius:3px">${a.ticker}</span>`:''}
+        </div>
+        <div class="ctitle">${a.title}</div>
+        ${a.description?`<div class="cdesc">${a.description}</div>`:''}
+        <div class="ctags">
+          <span class="tag new">✨ IA</span>
+          ${a.topic?`<span class="tag tp">${a.topic}</span>`:''}
+          ${a.company?`<span class="tag">${a.company}</span>`:''}
+        </div>
+      </div>`;
+    }).join('');
+
+  }catch(e){
+    list.innerHTML=`<div class="loader" style="color:var(--muted)">⚠️ Erreur de génération — réessayez dans quelques secondes</div>`;
+    console.error('loadFRNews error:',e);
   }
-
-  // Déduplique et trie
-  const seen=new Set();
-  fetched=fetched.filter(a=>{const k=a.title.slice(0,40);if(seen.has(k))return false;seen.add(k);return true;});
-  fetched.sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
-
-  list.innerHTML=fetched.map((a,i)=>`
-    <a class="card" href="${a.link&&a.link!='#'?a.link:'javascript:void(0)'}"
-       ${a.link&&a.link!='#'?'target="_blank" rel="noopener"':''}
-       style="animation-delay:${i*.02}s;border-left:3px solid #002395">
-      <div class="cm">
-        <span class="cs" style="color:#002395">${a.source}</span>
-        <span class="cd"></span>
-        <span class="ct">${formatPubDate(a.pubDate)}</span>
-        <span>🇫🇷</span>
-      </div>
-      <div class="ctitle">${a.title}</div>
-      ${a.description?`<div class="cdesc">${a.description}</div>`:''}
-      <div class="ctags">
-        ${isFresh(a.pubDate)?'<span class="tag new">🔥 Récent</span>':''}
-        ${a.link&&a.link!='#'?`
-          <span style="margin-left:auto;display:flex;gap:6px;align-items:center">
-            <a href="${a.link}" target="_blank" rel="noopener" onclick="event.stopPropagation()"
-               style="font-size:10px;padding:3px 7px;border-radius:3px;border:1px solid var(--accent);color:var(--accent);text-decoration:none">Lire →</a>
-            <a href="https://translate.google.com/translate?sl=auto&tl=fr&u=${encodeURIComponent(a.link)}" target="_blank" rel="noopener" onclick="event.stopPropagation()"
-               style="font-size:10px;padding:3px 7px;border-radius:3px;border:1px solid #4285f4;color:#4285f4;background:rgba(66,133,244,.08);text-decoration:none;font-weight:600">🇫🇷 Traduire</a>
-          </span>`:''}
-      </div>
-      </div>
-    </a>`).join('');
 }
 
 // ══════════════════════════════════════════════════════
