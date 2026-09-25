@@ -732,13 +732,11 @@ function getNewsArticles(){
 // SOURCES RSS — 100% gratuites, sans paywall
 // ══════════════════════════════════════════════════════
 const RSS_SOURCES = [
-  // ── Reuters — agence mondiale, RSS ouvert ──
-  {url:'https://feeds.reuters.com/reuters/businessNews',                         source:'Reuters Business',        country:'us', lang:'en'},
-  {url:'https://feeds.reuters.com/reuters/companyNews',                          source:'Reuters Companies',       country:'us', lang:'en'},
-  {url:'https://feeds.reuters.com/reuters/mergersNews',                          source:'Reuters M&A',             country:'us', lang:'en'},
+  // ── Google News — agrégateur très stable (FR + EN) ──
+  {url:'https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=fr&gl=FR&ceid=FR:fr', source:'Google News Éco FR', country:'fr', lang:'fr'},
+  {url:'https://news.google.com/rss/search?q=bourse+OR+%22CAC+40%22+when:2d&hl=fr&gl=FR&ceid=FR:fr', source:'Google News Bourse', country:'fr', lang:'fr'},
+  {url:'https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=en-US&gl=US&ceid=US:en', source:'Google News Business US', country:'us', lang:'en'},
   // ── AP News — agence mondiale libre, remplace Bloomberg ──
-  {url:'https://feeds.apnews.com/rss/business',                                  source:'AP Business',             country:'us', lang:'en'},
-  {url:'https://feeds.apnews.com/rss/finance',                                   source:'AP Finance',              country:'us', lang:'en'},
   // ── Yahoo Finance — remplace WSJ/Bloomberg ──
   {url:'https://finance.yahoo.com/news/rssindex',                                source:'Yahoo Finance',           country:'us', lang:'en'},
   {url:'https://finance.yahoo.com/rss/topstories',                               source:'Yahoo Finance Top',       country:'us', lang:'en'},
@@ -819,7 +817,7 @@ function detectTopic(t){
 }
 
 // ── Traduction universelle ──────────────────────────────
-const FR_SOURCES=['Les Échos','La Tribune','BFM Business','AMF France','Euronext'];
+const FR_SOURCES=['Google News Éco FR','Google News Bourse','Les Échos','La Tribune','BFM Business','AMF France','Euronext'];
 const translateCache={};
 
 // Détecte la langue source selon la source ou le contenu
@@ -885,143 +883,159 @@ async function translateArticle(article){
   }catch(e){return article;}
 }
 
-// ── Proxies RSS en cascade — si l'un échoue, le suivant prend le relais ──
+// ── Proxies RSS en cascade, avec rotation et mise à l'écart des proxies défaillants ──
 const RSS_PROXIES = [
-  url => `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}&count=12`,
-  url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
-  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  {name:'rss2json', type:'json2', url:u=>`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(u)}`},
+  {name:'allorigins-raw', type:'xml', url:u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`},
+  {name:'codetabs', type:'xml', url:u=>`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`},
+  {name:'corsproxy', type:'xml', url:u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`},
+  {name:'allorigins-get', type:'jsonwrap', url:u=>`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`},
 ];
+const proxyFails={};           // nb d'échecs par proxy pendant ce chargement
+const PROXY_MAX_FAILS=6;       // au-delà, le proxy est ignoré jusqu'au prochain rafraîchissement
+const NEWS_CACHE_KEY='news_cache_v2';
+const NEWS_REFRESH_MS=15*60*1000;
+let newsLoading=false;
 
-async function parseRSS(xml){
-  // Parse XML RSS/Atom manuellement
+function parseRSS(xml){
   const items=[];
+  if(!xml||typeof xml!=='string'||!/<(rss|feed|rdf)/i.test(xml))return items;
   const getTag=(s,tag)=>{
-    const re=new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>|<${tag}[^>]*\\/>`, 'i');
+    const re=new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`,'i');
     const m=s.match(re);
-    return m?m[1]?.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/,'$1').replace(/<[^>]*>/g,'').trim()||'':'';
+    return m?m[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/,'$1').replace(/<[^>]*>/g,'').replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&#39;|&apos;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>').trim():'';
   };
-  const entries=xml.split(/<item |<entry /i).slice(1);
+  const entries=xml.split(/<item[\s>]|<entry[\s>]/i).slice(1);
   for(const e of entries){
-    const title=getTag(e,'title')||'';
+    const title=getTag(e,'title');
     const link=(e.match(/<link[^>]*href="([^"]+)"/i)||e.match(/<link[^>]*>([^<]+)/i)||[])[1]||'';
-    const desc=getTag(e,'description')||getTag(e,'summary')||getTag(e,'content')||'';
-    const date=getTag(e,'pubDate')||getTag(e,'published')||getTag(e,'updated')||'';
-    if(title.length>5)items.push({title,link,description:desc.slice(0,400),pubDate:date});
+    const desc=getTag(e,'description')||getTag(e,'summary')||getTag(e,'content');
+    const date=getTag(e,'pubDate')||getTag(e,'published')||getTag(e,'updated')||getTag(e,'dc:date');
+    if(title.length>5)items.push({title,link:link.trim(),description:desc.slice(0,400),pubDate:date});
   }
   return items;
 }
 
+async function fetchViaProxy(p,src){
+  const r=await fetch(p.url(src.url),{signal:AbortSignal.timeout(9000),cache:'no-store'});
+  if(!r.ok)throw new Error(p.name+' HTTP '+r.status);
+  if(p.type==='json2'){
+    const d=await r.json();
+    if(d.status!=='ok'||!d.items?.length)throw new Error(p.name+' vide');
+    return d.items.map(i=>({title:(i.title||'').replace(/<[^>]*>/g,'').trim(),link:i.link||'',
+      description:(i.description||i.content||'').replace(/<[^>]*>/g,'').trim().slice(0,400),pubDate:i.pubDate||''}));
+  }
+  const xml=p.type==='jsonwrap'?(await r.json()).contents:await r.text();
+  const items=parseRSS(xml);
+  if(!items.length)throw new Error(p.name+' XML vide');
+  return items;
+}
+
 async function fetchRSS(src){
-  // Proxy 1 : rss2json (le plus propre, JSON direct)
-  try{
-    const url=`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(src.url)}&count=12`;
-    const r=await fetch(url,{signal:AbortSignal.timeout(7000)});
-    if(r.ok){
-      const data=await r.json();
-      if(data.status==='ok'&&data.items?.length>0){
-        return data.items.map(item=>{
-          const title=(item.title||'').replace(/<[^>]*>/g,'').trim();
-          const desc=(item.description||item.content||'').replace(/<[^>]*>/g,'').trim().slice(0,400);
-          const c=detectCountry(title+' '+desc)||src.country;
-          return {title,description:desc,link:item.link||'#',pubDate:item.pubDate||'',
-            source:src.source,country:c,flag:FLAGS[c]||'🌍',
-            topic:detectTopic(title+' '+desc),lang:src.lang||'en',real:true,translated:false};
-        }).filter(a=>a.title.length>10&&!a.title.includes('MYMEMORY')&&!a.title.includes('Error'));
-      }
-    }
-  }catch(e){}
-
-  // Proxy 2 : allorigins (retourne le XML brut)
-  try{
-    const url=`https://api.allorigins.win/get?url=${encodeURIComponent(src.url)}`;
-    const r=await fetch(url,{signal:AbortSignal.timeout(8000)});
-    if(r.ok){
-      const data=await r.json();
-      if(data.contents){
-        const items=await parseRSS(data.contents);
-        if(items.length>0){
-          return items.map(item=>{
-            const c=detectCountry(item.title+' '+item.description)||src.country;
-            return {title:item.title,description:item.description,link:item.link||'#',
-              pubDate:item.pubDate||'',source:src.source,country:c,flag:FLAGS[c]||'🌍',
-              topic:detectTopic(item.title+' '+item.description),lang:src.lang||'en',real:true,translated:false};
-          }).filter(a=>a.title.length>10);
-        }
-      }
-    }
-  }catch(e){}
-
-  // Proxy 3 : corsproxy.io
-  try{
-    const url=`https://corsproxy.io/?${encodeURIComponent(src.url)}`;
-    const r=await fetch(url,{signal:AbortSignal.timeout(8000)});
-    if(r.ok){
-      const xml=await r.text();
-      const items=await parseRSS(xml);
-      if(items.length>0){
-        return items.map(item=>{
-          const c=detectCountry(item.title+' '+item.description)||src.country;
-          return {title:item.title,description:item.description,link:item.link||'#',
-            pubDate:item.pubDate||'',source:src.source,country:c,flag:FLAGS[c]||'🌍',
-            topic:detectTopic(item.title+' '+item.description),lang:src.lang||'en',real:true,translated:false};
-        }).filter(a=>a.title.length>10);
-      }
-    }
-  }catch(e){}
-
+  // Ordre de départ différent selon la source → répartit la charge entre proxies
+  const off=[...src.url].reduce((a,c)=>a+c.charCodeAt(0),0)%RSS_PROXIES.length;
+  const order=RSS_PROXIES.map((_,i)=>RSS_PROXIES[(i+off)%RSS_PROXIES.length])
+    .filter(p=>(proxyFails[p.name]||0)<PROXY_MAX_FAILS);
+  for(const p of order){
+    try{
+      const items=await fetchViaProxy(p,src);
+      proxyFails[p.name]=0;
+      return items.map(item=>{
+        const c=detectCountry(item.title+' '+item.description)||src.country;
+        return {title:item.title,description:item.description,link:item.link||'#',pubDate:item.pubDate||'',
+          source:src.source,country:c,flag:FLAGS[c]||'🌍',topic:detectTopic(item.title+' '+item.description),
+          lang:src.lang||'en',real:true,translated:false};
+      }).filter(a=>a.title.length>10&&!a.title.includes('MYMEMORY'));
+    }catch(e){proxyFails[p.name]=(proxyFails[p.name]||0)+1;}
+  }
   return [];
 }
 
-async function loadNews(){
-  spin('rbtn1',true);
-  document.getElementById('newsList').innerHTML=`<div class="loader"><div class="sp"></div><div>Chargement des flux RSS…</div></div>`;
+// Exécute les requêtes 5 par 5 pour ne pas déclencher les limites des proxies gratuits
+async function runLimited(list,fn,limit=5){
+  const out=new Array(list.length);let i=0;
+  const workers=Array.from({length:limit},async()=>{while(i<list.length){const k=i++;try{out[k]=await fn(list[k]);}catch(e){out[k]=[];}}});
+  await Promise.all(workers);
+  return out;
+}
 
-  // Charge TOUTES les sources en parallèle — le filtre pays se fait à l'affichage
-  const results=await Promise.allSettled(RSS_SOURCES.filter(s=>!s.reg).map(s=>fetchRSS(s)));
-  let fetched=results.flatMap(r=>r.status==='fulfilled'?r.value:[]);
+function saveNewsCache(items){
+  try{localStorage.setItem(NEWS_CACHE_KEY,JSON.stringify({ts:Date.now(),items:items.slice(0,300)}));}catch(e){}
+}
+function readNewsCache(){
+  try{const c=JSON.parse(localStorage.getItem(NEWS_CACHE_KEY)||'null');return c&&c.items?.length?c:null;}catch(e){return null;}
+}
+let lastBanner=null;
+function newsBanner(html,color){
+  lastBanner={html,color};
+  document.getElementById('newsBanner')?.remove();
+  document.getElementById('newsList').insertAdjacentHTML('afterbegin',
+    `<div id="newsBanner" style="padding:8px 16px;font-size:11px;background:${color};border-bottom:1px solid var(--border)">${html}</div>`);
+}
+
+async function loadNews(){
+  if(newsLoading)return;
+  newsLoading=true;
+  spin('rbtn1',true);
+  if(!allNews.length)document.getElementById('newsList').innerHTML=`<div class="loader"><div class="sp"></div><div>Chargement des flux RSS…</div></div>`;
+  for(const k in proxyFails)delete proxyFails[k];
+
+  const srcs=RSS_SOURCES.filter(s=>!s.reg);
+  const results=await runLimited(srcs,fetchRSS,5);
+  const okCount=results.filter(r=>r&&r.length).length;
+  let fetched=results.flat();
+
+  // Garde uniquement les articles datés de moins de 7 jours (ou sans date)
+  const lim=Date.now()-7*864e5;
+  fetched=fetched.filter(a=>{const t=new Date(a.pubDate).getTime();return isNaN(t)||t>lim;});
 
   if(fetched.length<3){
-    allNews=getNewsArticles();
-    console.warn('RSS fallback: toutes les sources ont échoué');
-    spin('rbtn1',false);
-    renderNews();
+    const cache=readNewsCache();
+    spin('rbtn1',false);newsLoading=false;
+    if(cache){
+      allNews=cache.items;renderNews();
+      const d=new Date(cache.ts);
+      newsBanner(`⚠️ Flux RSS injoignables (0/${srcs.length} sources). Affichage du dernier chargement réussi du <b>${d.toLocaleDateString('fr-FR')} à ${d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</b>.`,'var(--red-bg)');
+    }else{
+      allNews=getNewsArticles();renderNews();
+      newsBanner(`⛔ Flux RSS injoignables (0/${srcs.length} sources) et aucun cache. Les articles ci-dessous sont des <b>exemples statiques</b>, pas l'actualité. Ouvrez la console (F12) pour le détail.`,'var(--red-bg)');
+    }
+    console.warn('RSS : échec de toutes les sources',proxyFails);
     return;
   }
 
-  // Déduplique et trie par date
   const seen=new Set();
-  fetched=fetched.filter(a=>{
-    const k=a.title.slice(0,40);
-    if(seen.has(k))return false;
-    seen.add(k);return true;
-  });
-  fetched.sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
+  fetched=fetched.filter(a=>{const k=a.title.slice(0,40).toLowerCase();if(seen.has(k))return false;seen.add(k);return true;});
+  fetched.sort((a,b)=>(new Date(b.pubDate).getTime()||0)-(new Date(a.pubDate).getTime()||0));
 
-  // Affiche d'abord les articles sans traduction
   allNews=fetched;
+  saveNewsCache(fetched);
   spin('rbtn1',false);
   renderNews();
   updateRefreshTime();
-  // Traduit en arrière-plan les articles anglais (max 15 pour ne pas saturer l'API)
-  document.getElementById('newsList').insertAdjacentHTML('afterbegin',
-    `<div id="transBar" style="padding:8px 16px;font-size:11px;color:var(--muted);background:var(--blue-bg);border-bottom:1px solid var(--border);font-style:italic">
-      🔄 Traduction en cours…
-    </div>`);
+  newsBanner(`✅ ${okCount}/${srcs.length} sources chargées · ${fetched.length} articles · actualisation auto toutes les 15 min`,'var(--blue-bg)');
 
+  document.getElementById('newsList').insertAdjacentHTML('afterbegin',
+    `<div id="transBar" style="padding:8px 16px;font-size:11px;color:var(--muted);background:var(--blue-bg);border-bottom:1px solid var(--border);font-style:italic">🔄 Traduction en cours…</div>`);
   const toTranslate=fetched.filter(a=>needsTranslation(a)).slice(0,15);
-  // Traduit par batch de 3 pour ne pas surcharger
   for(let i=0;i<toTranslate.length;i+=3){
     const batch=toTranslate.slice(i,i+3);
     const translated=await Promise.all(batch.map(a=>translateArticle(a)));
-    translated.forEach(t=>{
-      const idx=allNews.findIndex(a=>a.title===t.title||a.link===t.link);
+    translated.forEach((t,j)=>{
+      const o=batch[j];
+      const idx=allNews.findIndex(a=>a.link===o.link&&a.title===o.title);
       if(idx>=0)allNews[idx]=t;
     });
     renderNews();
-    await new Promise(r=>setTimeout(r,300)); // Petite pause entre batches
+    await new Promise(r=>setTimeout(r,300));
   }
   document.getElementById('transBar')?.remove();
+  saveNewsCache(allNews);
+  newsLoading=false;
 }
+setInterval(()=>{if(!document.hidden)loadNews();},NEWS_REFRESH_MS);
+const _renderNewsOrig=renderNews;
+renderNews=function(){_renderNewsOrig();if(lastBanner){const b=lastBanner;newsBanner(b.html,b.color);}};
 
 function formatPubDate(d){
   if(!d)return '';
@@ -1401,7 +1415,6 @@ const FR_RSS_SOURCES = [
   {url:'https://www.abcbourse.com/rss/news.xml',                 source:'ABC Bourse',           lang:'fr'},
   {url:'https://www.lesechos.fr/rss/rss_bourse.xml',            source:'Les Échos Bourse',     lang:'fr'},
   {url:'https://www.latribune.fr/rss/rubriques/entreprises.html',source:'La Tribune Entreprises',lang:'fr'},
-  {url:'https://feeds.reuters.com/reuters/businessNews',         source:'Reuters FR',           lang:'en'},
   {url:'https://www.zonebourse.com/rss/actualites.xml',          source:'Zonebourse',           lang:'fr'},
 ];
 
