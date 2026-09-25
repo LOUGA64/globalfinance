@@ -175,6 +175,7 @@
   <!-- Tab bar -->
   <div class="tabs">
     <div class="tab active" data-tab="news">📰 Actualités</div>
+    <div class="tab" data-tab="mes">⭐ Mes valeurs</div>
     <div class="tab" data-tab="reg">🏛️ AMF / SEC</div>
     <div class="tab" data-tab="opa">🚨 OPA / M&A</div>
     <div class="tab" data-tab="fr">🇫🇷 Valeurs FR</div>
@@ -331,13 +332,13 @@
 
     <div class="infobox" style="border-left:3px solid #10b981;background:linear-gradient(135deg,rgba(16,185,129,.07),rgba(5,150,105,.04))">
       <strong>💰 Calendrier Dividendes — CAC 40 · SBF 120 · Europe</strong><br>
-      <span style="font-size:11px">Dates de détachement · Montants · Rendements · Mise à jour mensuelle</span>
+      <span style="font-size:11px">Cours et dividendes détachés en direct (Yahoo Finance) · Rendement sur 12 mois glissants · Cache 6 h</span>
     </div>
 
     <!-- Filtres -->
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 10px">
       <button onclick="filterDiv('all')" id="dfall" class="dpill active" style="font-size:11px;padding:5px 12px;border-radius:20px;border:1px solid #10b981;background:#10b981;color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif">Tous</button>
-      <button onclick="filterDiv('imminent')" id="dfimminent" class="dpill" style="font-size:11px;padding:5px 12px;border-radius:20px;border:1px solid var(--border2);background:none;color:var(--text);cursor:pointer;font-family:'DM Sans',sans-serif">⚡ &lt;30j</button>
+      <button onclick="filterDiv('imminent')" id="dfimminent" class="dpill" style="font-size:11px;padding:5px 12px;border-radius:20px;border:1px solid var(--border2);background:none;color:var(--text);cursor:pointer;font-family:'DM Sans',sans-serif">⚡ Détachés &lt;30j</button>
       <button onclick="filterDiv('fr')" id="dffr" class="dpill" style="font-size:11px;padding:5px 12px;border-radius:20px;border:1px solid var(--border2);background:none;color:var(--text);cursor:pointer;font-family:'DM Sans',sans-serif">🇫🇷 France</button>
       <button onclick="filterDiv('eu')" id="dfeu" class="dpill" style="font-size:11px;padding:5px 12px;border-radius:20px;border:1px solid var(--border2);background:none;color:var(--text);cursor:pointer;font-family:'DM Sans',sans-serif">🇪🇺 Europe</button>
       <button onclick="filterDiv('high')" id="dfhigh" class="dpill" style="font-size:11px;padding:5px 12px;border-radius:20px;border:1px solid var(--border2);background:none;color:var(--text);cursor:pointer;font-family:'DM Sans',sans-serif">🏆 Rdt &gt;4%</button>
@@ -351,7 +352,7 @@
       </div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px;text-align:center">
         <div id="divCntImminent" style="font-size:20px;font-weight:700;color:#f59e0b">—</div>
-        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Dans 30j</div>
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Détachés &lt;30j</div>
       </div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px;text-align:center">
         <div id="divCntHigh" style="font-size:20px;font-weight:700;color:#e53935">—</div>
@@ -362,11 +363,26 @@
     <div id="divList"></div>
 
     <div style="font-size:10px;color:var(--muted);margin-top:16px;padding:10px;background:var(--surface);border-radius:6px;border:1px solid var(--border)">
-      ⚠️ <strong>Données indicatives</strong> — compilées depuis rapports annuels, AMF, Euronext. Rendements calculés sur cours récents. Vérifiez auprès de votre courtier avant toute décision.
+      ⚠️ <strong>Méthode</strong> — Rendement = somme des dividendes détachés sur les 365 derniers jours ÷ dernier cours (Yahoo Finance). Un dividende exceptionnel ou une fréquence modifiée fausse ce ratio. Les dates futures ne sont pas estimées : se reporter aux communiqués de chaque société. Vérifiez auprès de votre courtier avant toute décision.
     </div>
   </div>
 
   <!-- ══════════════ TAB 5 : IA & TECH ══════════════ -->
+  <!-- ══════════════ TAB MES VALEURS ══════════════ -->
+  <div class="tab-content" id="tab-mes">
+    <div class="infobox" style="border-left:3px solid var(--gold)">
+      <strong>⭐ Mes valeurs — suivi en continu</strong><br>
+      <span style="font-size:11px">Cours du jour (Yahoo Finance) · Actualités des 7 derniers jours (presse française via Google News) · Actualisation auto 15 min</span>
+    </div>
+    <div class="sh">
+      <div class="st">Portefeuille suivi</div>
+      <button class="rbtn" id="rbtnMes" onclick="loadMesValeurs()">↻ Actualiser</button>
+    </div>
+    <div id="mesQuotes" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:12px"></div>
+    <div class="pills" id="mesFilter" style="margin-bottom:10px"></div>
+    <div class="list" id="mesList"><div class="loader"><div class="sp"></div><div>Chargement…</div></div></div>
+  </div>
+
   <div class="tab-content" id="tab-ai">
 
     <!-- Bannière intro -->
@@ -498,12 +514,12 @@
 
     <div class="infobox" style="border-left:3px solid #002395;background:linear-gradient(135deg,rgba(0,35,149,.06),rgba(237,41,57,.04))">
       <strong>🇫🇷 Veille Valeurs Françaises — CAC 40 · SBF 120</strong><br>
-      <span style="font-size:11px">Rumeurs résultats · Consensus analystes · Alertes AMF · Sources spécialisées françaises</span>
+      <span style="font-size:11px">Annonces de résultats · Actualités CAC 40 / SBF 120 · Sources françaises en direct</span>
     </div>
 
     <!-- Calendrier résultats à venir -->
     <div style="margin:14px 0 8px;font-family:'Playfair Display',serif;font-size:15px;font-weight:700;font-style:italic;color:var(--text)">
-      📅 Prochains résultats SBF 120
+      📅 Résultats publiés — SBF 120
     </div>
     <div id="frCalendar" style="overflow-x:auto;margin-bottom:16px">
       <table style="width:100%;border-collapse:collapse;font-size:11px;font-family:'DM Sans',sans-serif">
@@ -545,6 +561,7 @@
 
 <nav class="bnav">
   <div class="ni active"><div class="ni-icon">📰</div>News</div>
+  <div class="ni"><div class="ni-icon">⭐</div>Mes val.</div>
   <div class="ni"><div class="ni-icon">🏛️</div>AMF/SEC</div>
   <div class="ni"><div class="ni-icon">🚨</div>OPA</div>
   <div class="ni"><div class="ni-icon">🇫🇷</div>Valeurs</div>
@@ -655,83 +672,44 @@ function highlight(text,words){
 // ══════════════════════════════════════════════════════
 let allNews=[], ac='all', at='all';
 
-function getNewsArticles(){
-  return [
-    // CHINE (12 articles)
-    {title:'Shanghai Composite : Pékin injecte 500 Mds¥, rebond de 2,1%',description:'La PBOC annonce une opération de refinancement massive pour soutenir les marchés. Les valeurs tech et immobilières rebondissent fortement.',source:'Xinhua Finance',country:'cn',topic:'bourse',pubDate:'2026-03-03T08:00:00Z'},
-    {title:'DeepSeek secoue les marchés : Nvidia perd 17% en une séance',description:'Le modèle d\'IA open source chinois rivalise avec GPT-4 à une fraction du coût. Réaction en chaîne sur les semiconducteurs américains.',source:'South China Morning Post',country:'cn',topic:'tech',pubDate:'2026-03-03T07:00:00Z'},
-    {title:'BYD dépasse Tesla : 4,27 millions de VE vendus en 2024',description:'Le constructeur automobile chinois consolide sa première place mondiale dans l\'électrique. Les exportations vers l\'Europe doublent malgré les droits de douane.',source:'Caixin Global',country:'cn',topic:'resultats',pubDate:'2026-03-03T06:00:00Z'},
-    {title:'Alibaba restructure : spin-off de 6 filiales, retour à la croissance',description:'Fin de la disgrâce réglementaire pour Jack Ma. Le titre bondit de 8% à Hong Kong après 2 ans de purgatoire.',source:'South China Morning Post',country:'cn',topic:'ma',pubDate:'2026-03-03T05:00:00Z'},
-    {title:'PIB Chine 2024 : +5,2% mais consommation intérieure toujours faible',description:'L\'objectif officiel est atteint de justesse. Les économistes s\'inquiètent de la déflation persistante et de la crise immobilière non résolue.',source:'Caixin Global',country:'cn',topic:'macro',pubDate:'2026-03-03T04:00:00Z'},
-    {title:'CATL : usine de 7,3 Mds€ en Hongrie pour contourner les droits UE',description:'Le leader mondial des batteries VE contourne les barrières douanières européennes avec cette implantation locale stratégique.',source:'Reuters',country:'cn',topic:'ma',pubDate:'2026-03-03T03:00:00Z'},
-    {title:'Baidu Ernie 4.0 : l\'IA générative chinoise attaque le marché européen',description:'Le moteur de recherche chinois déploie son assistant IA en 12 langues européennes, ciblant directement les clients de Microsoft Copilot.',source:'Caixin Global',country:'cn',topic:'tech',pubDate:'2026-03-02T20:00:00Z'},
-    {title:'Tensions UE-Chine : droits de 47% sur les panneaux solaires',description:'Bruxelles impose des droits compensatoires massifs. Pékin menace des représailles sur le cognac, les voitures de luxe et les produits laitiers.',source:'Le Monde',country:'cn',topic:'macro',pubDate:'2026-03-02T18:00:00Z'},
-    {title:'Xiaomi SU7 : 100 000 commandes en 24h, Tesla sous pression en Chine',description:'Le géant tech fait une entrée fracassante dans l\'automobile électrique avec un véhicule au rapport qualité-prix imbattable.',source:'South China Morning Post',country:'cn',topic:'resultats',pubDate:'2026-03-02T16:00:00Z'},
-    {title:'PBOC abaisse ses taux : coup de pouce à l\'économie en déflation',description:'La Banque Populaire de Chine réduit son taux préférentiel à 1 an. Troisième baisse en 18 mois pour relancer la demande intérieure.',source:'Xinhua Finance',country:'cn',topic:'banque',pubDate:'2026-03-02T14:00:00Z'},
-    {title:'Huawei Mate 70 : puces 7nm made in China, Apple perd des parts',description:'Huawei confirme sa capacité à produire des puces avancées sans équipements ASML. Effet direct sur les ventes iPhone en Chine.',source:'Caixin Global',country:'cn',topic:'tech',pubDate:'2026-03-02T12:00:00Z'},
-    {title:'Chine : exportations record malgré les tensions commerciales mondiales',description:'Le surplus commercial chinois atteint 992 milliards de dollars en 2024, un record absolu, alimentant les tensions avec Washington et Bruxelles.',source:'Xinhua Finance',country:'cn',topic:'macro',pubDate:'2026-03-02T10:00:00Z'},
-    // FRANCE (10 articles)
-    {title:'CAC 40 en hausse de 0,8%, les bancaires mènent la danse',description:'BNP Paribas (+2,1%) et Société Générale (+1,8%) portent l\'indice. Les investisseurs parient sur une baisse de taux BCE en mars.',source:'Les Échos',country:'fr',topic:'bourse',pubDate:'2026-03-03T08:00:00Z'},
-    {title:'LVMH : rebond de 3% porté par le retour de la clientèle chinoise',description:'Le numéro un mondial du luxe bénéficie du rebond du tourisme chinois en Europe. Objectifs de cours relevés par Goldman Sachs et JPMorgan.',source:'Boursorama',country:'fr',topic:'bourse',pubDate:'2026-03-03T07:00:00Z'},
-    {title:'TotalEnergies : bénéfice net de 4,8 Mds€, dividende en hausse',description:'Le groupe pétrolier surpasse les attentes de 12%. Forte contribution du GNL et accélération des projets renouvelables en Afrique.',source:'Les Échos',country:'fr',topic:'resultats',pubDate:'2026-03-03T06:00:00Z'},
-    {title:'Sanofi : Dupixent dépasse 12 Mds$ de revenus, guidance relevée',description:'Le médicament phare contre les maladies inflammatoires bat tous les records. Sanofi devient le 2e groupe pharma européen par capitalisation.',source:'Reuters France',country:'fr',topic:'resultats',pubDate:'2026-03-03T05:00:00Z'},
-    {title:'BCE : Lagarde ouvre la porte à une baisse des taux en mars',description:'L\'inflation zone euro à 2,3% rapproche la BCE de son objectif. Une première baisse de 25 pb est désormais intégrée par les marchés.',source:'Le Monde',country:'fr',topic:'macro',pubDate:'2026-03-03T04:00:00Z'},
-    {title:'BNP Paribas : résultats records, dividende relevé de 12%',description:'La première banque de la zone euro annonce 11,7 Mds€ de bénéfice net. Retour aux actionnaires massif via rachats et dividende exceptionnel.',source:'BFM Business',country:'fr',topic:'banque',pubDate:'2026-03-03T03:00:00Z'},
-    {title:'EDF : 10 réacteurs prolongés, la France sécurise son mix électrique',description:'Le gouvernement valide la prolongation au-delà de 40 ans. La France aura 70% d\'électricité nucléaire jusqu\'en 2035 au minimum.',source:'Le Monde',country:'fr',topic:'energie',pubDate:'2026-03-02T20:00:00Z'},
-    {title:'Sanofi acquiert Inhibrx pour 2,5 Mds$, pipeline oncologie renforcé',description:'Rachat stratégique d\'une biotech californienne spécialisée dans les traitements contre le cancer. Finalisation prévue au T2 2025.',source:'Les Échos',country:'fr',topic:'ma',pubDate:'2026-03-02T18:00:00Z'},
-    {title:'Airbus : 2 319 avions commandés en 2024, record historique',description:'Le constructeur européen dépasse Boeing sur tous les segments. Le carnet de commandes représente 10 ans de production.',source:'Le Figaro',country:'fr',topic:'resultats',pubDate:'2026-03-02T16:00:00Z'},
-    {title:'Inflation France : 1,7% en janvier, plus bas depuis 3 ans',description:'La désinflation se confirme en France. L\'alimentation et l\'énergie contribuent à la baisse. La BCE est confortée dans son pivot.',source:'INSEE',country:'fr',topic:'macro',pubDate:'2026-03-02T14:00:00Z'},
-    // ALLEMAGNE (6 articles)
-    {title:'DAX franchit les 22 000 points : record historique',description:'SAP, Deutsche Telekom et Siemens tirent l\'indice. La Bourse de Francfort surperforme le reste de l\'Europe malgré la récession économique.',source:'Handelsblatt',country:'de',topic:'bourse',pubDate:'2026-03-03T08:00:00Z'},
-    {title:'Volkswagen : 35 000 suppressions de postes, IG Metall négocie',description:'Le constructeur publie ses pires résultats depuis 15 ans. La pression des VE chinois et la faiblesse de la demande en Europe mettent l\'industrie à rude épreuve.',source:'Handelsblatt',country:'de',topic:'resultats',pubDate:'2026-03-03T06:00:00Z'},
-    {title:'SAP : cloud revenue +25%, objectifs 2025 relevés une 3e fois',description:'L\'éditeur de logiciels allemand confirme sa transformation vers le SaaS. Intelligence artificielle intégrée dans tous ses modules Enterprise.',source:'Manager Magazin',country:'de',topic:'tech',pubDate:'2026-03-03T05:00:00Z'},
-    {title:'Allemagne : récession 2 ans de suite, Bundesbank en alerte',description:'La première économie de la zone euro est en panne. Désindustrialisation, coûts énergétiques et manque de compétitivité menacent le modèle allemand.',source:'Bundesbank',country:'de',topic:'macro',pubDate:'2026-03-03T04:00:00Z'},
-    {title:'Deutsche Bank : bénéfice record, meilleur résultat depuis 2011',description:'La restructuration de Sewing porte ses fruits. RoTE à 9,8%, objectif 2025 de 10%+ désormais en ligne de mire.',source:'Handelsblatt',country:'de',topic:'banque',pubDate:'2026-03-03T03:00:00Z'},
-    {title:'RWE : 40 Mds€ dans le renouvelable, abandon définitif du charbon',description:'Le géant énergétique allemand boucle sa transformation écologique. Leader européen de l\'éolien offshore d\'ici 2030.',source:'FAZ',country:'de',topic:'energie',pubDate:'2026-03-02T20:00:00Z'},
-    // ESPAGNE (5 articles)
-    {title:'IBEX 35 : nouveau record annuel, Santander +3% en séance',description:'Les bancaires espagnoles profitent de marges records. L\'indice dépasse son sommet de 2007 pour la première fois.',source:'Expansión',country:'es',topic:'bourse',pubDate:'2026-03-03T07:00:00Z'},
-    {title:'Santander : bénéfice record 11,7 Mds€, Amérique latine en tête',description:'La plus grande banque de la zone euro par capitalisation annonce des résultats historiques. Le Mexique et le Brésil représentent 40% des profits.',source:'Expansión',country:'es',topic:'banque',pubDate:'2026-03-03T06:00:00Z'},
-    {title:'Espagne : croissance 3,2%, championne de la zone euro',description:'Le tourisme, les exportations de services et les fonds européens alimentent une croissance sans équivalent en Europe continentale.',source:'El Economista',country:'es',topic:'macro',pubDate:'2026-03-03T04:00:00Z'},
-    {title:'Inditex : ventes +11%, Zara domine la mode mondiale',description:'Le groupe galicien confirme sa domination avec des chiffres record. L\'Asie du Sud-Est devient son deuxième marché devant les États-Unis.',source:'El País',country:'es',topic:'resultats',pubDate:'2026-03-03T03:00:00Z'},
-    {title:'Iberdrola : 41 GW de renouvelable installé, dividende record',description:'Le géant espagnol de l\'énergie dépasse ses objectifs de capacité installée et propose un dividende en hausse de 14%.',source:'Expansión',country:'es',topic:'energie',pubDate:'2026-03-02T20:00:00Z'},
-    // ITALIE (4 articles)
-    {title:'FTSE MIB : Milan au-dessus des 36 000, Ferrari et Unicredit en vedette',description:'La Bourse italienne affiche la meilleure performance de l\'année en Europe. Le secteur bancaire et le luxe attirent les flux institutionnels.',source:'Il Sole 24 Ore',country:'it',topic:'bourse',pubDate:'2026-03-03T07:00:00Z'},
-    {title:'Ferrari franchit 400€ : liste d\'attente de 2 ans pour la Roma Spider',description:'La marque au cheval cabré devient la société la plus valorisée d\'Italie. Demande record sur les modèles hybrides Purosangue et SF90.',source:'Corriere della Sera',country:'it',topic:'bourse',pubDate:'2026-03-03T06:00:00Z'},
-    {title:'UniCredit : offensive sur Commerzbank, bataille judiciaire en Allemagne',description:'La banque italienne monte à 28% du capital. Berlin dépose un recours. Deal potentiel de 18 Mds€ qui créerait la 3e banque européenne.',source:'Reuters Italia',country:'it',topic:'ma',pubDate:'2026-03-03T05:00:00Z'},
-    {title:'Eni : profits en hausse malgré le pétrole en baisse grâce au GNL',description:'La diversification dans le gaz naturel liquéfié et les énergies renouvelables compense la baisse des prix du pétrole brut.',source:'Il Sole 24 Ore',country:'it',topic:'resultats',pubDate:'2026-03-03T04:00:00Z'},
-    // SUISSE (4 articles)
-    {title:'Nestlé : restructuration mondiale, priorité aux marques premium',description:'Le géant alimentaire cède 30 marques non stratégiques et investit dans les produits santé et nutrition haut de gamme.',source:'Le Temps',country:'ch',topic:'resultats',pubDate:'2026-03-03T07:00:00Z'},
-    {title:'Novartis : 5 approbations FDA en vue, pipeline exceptionnel',description:'Le groupe pharmaceutique suisse présente le pipeline le plus prometteur de son histoire. Immunologie et oncologie en tête.',source:'NZZ',country:'ch',topic:'resultats',pubDate:'2026-03-03T06:00:00Z'},
-    {title:'UBS post-Credit Suisse : 3 000 nouveaux postes supprimés, intégration avance',description:'La banque suisse finalise la plus grande fusion bancaire depuis la crise de 2008. Coûts d\'intégration de 14 Mds$ absorbés d\'ici 2026.',source:'Le Temps',country:'ch',topic:'banque',pubDate:'2026-03-03T05:00:00Z'},
-    {title:'Horlogerie suisse : 26 Mds CHF d\'exportations record en 2024',description:'Rolex, Patek Philippe et Richemont tirent la croissance. La Chine revient comme premier marché devant les États-Unis.',source:'NZZ',country:'ch',topic:'macro',pubDate:'2026-03-03T04:00:00Z'},
-    // ROYAUME-UNI (3 articles)
-    {title:'FTSE 100 : record à 8 500 points, énergie et minier en tête',description:'Rio Tinto, BP et Shell portent l\'indice londonien à son plus haut historique. La livre sterling s\'apprécie face à l\'euro.',source:'Financial Times',country:'gb',topic:'bourse',pubDate:'2026-03-03T07:00:00Z'},
-    {title:'Bank of England réduit ses taux : première baisse depuis 2020',description:'Le MPC vote 5-4 pour une baisse de 25 pb à 4,75%. L\'inflation britannique est revenue à 2,2%, proche de l\'objectif.',source:'The Guardian',country:'gb',topic:'banque',pubDate:'2026-03-03T06:00:00Z'},
-    {title:'AstraZeneca : approbation FDA pour son traitement contre le cancer du poumon',description:'La biotech britanno-suédoise obtient le feu vert américain pour Tagrisso en adjuvant. Potentiel de revenus de 3 Mds$ par an.',source:'Financial Times',country:'gb',topic:'resultats',pubDate:'2026-03-03T05:00:00Z'},
-    // USA (6 articles)
-    {title:'S&P 500 : nouveau record à 5 400 points, momentum IA intact',description:'Wall Street poursuit sa hausse portée par les valeurs technologiques. La saison des résultats du T4 dépasse les attentes de 8%.',source:'Wall Street Journal',country:'us',topic:'bourse',pubDate:'2026-03-03T08:00:00Z'},
-    {title:'Nvidia : cap des 3 000 Mds$ franchi, 3e capitalisation mondiale',description:'Le fabricant de puces H100/H200 dépasse Apple. La demande des data centers pour l\'IA reste insatisfaite. Ratio P/E de 35x.',source:'Bloomberg',country:'us',topic:'tech',pubDate:'2026-03-03T07:00:00Z'},
-    {title:'Apple vs Huawei : recul en Chine, compensation par l\'Inde',description:'Les ventes iPhone reculent de 11% en Chine au T4 face au retour de Huawei. L\'Inde devient le 2e marché en croissance.',source:'Financial Times',country:'us',topic:'resultats',pubDate:'2026-03-03T06:00:00Z'},
-    {title:'Fed : Powell maintient les taux, 2 baisses attendues en 2025',description:'La Réserve fédérale adopte une approche prudente. L\'inflation core à 2,8% ne justifie pas encore un assouplissement accéléré.',source:'Wall Street Journal',country:'us',topic:'macro',pubDate:'2026-03-03T05:00:00Z'},
-    {title:'Microsoft Azure : croissance 28%, IA Copilot dépasse 1 million d\'entreprises',description:'La division cloud de Microsoft confirme sa domination dans l\'IA d\'entreprise. OpenAI représente désormais 15% des revenus Azure.',source:'CNBC',country:'us',topic:'tech',pubDate:'2026-03-03T04:00:00Z'},
-    {title:'Amazon rachète une entreprise de santé digitale pour 3,9 Mds$',description:'Le géant accélère dans la médecine numérique. Accès à 10 millions de dossiers patients via cette acquisition stratégique.',source:'Bloomberg',country:'us',topic:'ma',pubDate:'2026-03-03T03:00:00Z'},
-    // JAPON (3 articles)
-    {title:'Nikkei 225 : 40 000 points franchis pour la première fois depuis 1989',description:'L\'indice japonais efface 35 ans de perte grâce au yen faible, aux reformes Kishida et à la réallocation d\'actifs des fonds de retraite.',source:'Nikkei Asia',country:'jp',topic:'bourse',pubDate:'2026-03-03T08:00:00Z'},
-    {title:'Toyota : bénéfice record 45 Mds$, numéro un mondial confirmé',description:'Le constructeur japonais écrase la concurrence. Sa stratégie hybride multi-technologie se révèle plus robuste que le tout-électrique.',source:'Nikkei Asia',country:'jp',topic:'resultats',pubDate:'2026-03-03T06:00:00Z'},
-    {title:'Bank of Japan : fin des taux négatifs après 17 ans, tournant historique',description:'La BOJ relève ses taux à 0,1%, marquant la fin d\'une politique monétaire ultra-accommodante unique au monde. Le yen remonte.',source:'Japan Times',country:'jp',topic:'banque',pubDate:'2026-03-03T05:00:00Z'},
-    // INDE (2 articles)
-    {title:'Sensex : l\'Inde 4e Bourse mondiale, capitalisation 4 000 Mds$',description:'Le marché boursier indien dépasse Hong Kong. Croissance portée par les IPO technologiques et l\'afflux de capitaux étrangers.',source:'Economic Times India',country:'in',topic:'bourse',pubDate:'2026-03-03T07:00:00Z'},
-    {title:'Inde : croissance 7,6%, 3e année consécutive devant la Chine',description:'Le FMI confirme l\'Inde comme moteur de croissance mondiale. Services IT, pharmacie et manufacture attirent les délocalisations depuis la Chine.',source:'Hindustan Times',country:'in',topic:'macro',pubDate:'2026-03-03T05:00:00Z'},
-    // BRÉSIL (2 articles)
-    {title:'Bovespa : São Paulo portée par Vale et Petrobras, matières premières en hausse',description:'L\'indice brésilien progresse sur fond de hausse des métaux et du pétrole. Les géants miniers et pétroliers dominent les flux.',source:'Valor Econômico',country:'br',topic:'bourse',pubDate:'2026-03-03T06:00:00Z'},
-    {title:'Petrobras : 12 Mds$ de dividendes, l\'État brésilien encaisse',description:'La compagnie pétrolière publique distribue des dividendes records. Principal bénéficiaire : le gouvernement Lula qui finance ses programmes sociaux.',source:'Folha de S.Paulo',country:'br',topic:'resultats',pubDate:'2026-03-03T04:00:00Z'},
-  ];
-}
+function getNewsArticles(){ return []; } // plus d'articles fictifs de secours
 
 // ══════════════════════════════════════════════════════
 // SOURCES RSS — 100% gratuites, sans paywall
 // ══════════════════════════════════════════════════════
+const GN='https://news.google.com/rss/headlines/section/topic/BUSINESS?';
+const GNS='https://news.google.com/rss/search?q=';
+// ── Presse boursière française habituelle (via Google News, filtre par site) ──
+const PRESSE_BOURSE_FR=[
+  ['Boursorama','site:boursorama.com'],
+  ['Investir (Les Échos)','site:investir.lesechos.fr'],
+  ['Zonebourse','site:zonebourse.com'],
+  ['ABC Bourse','site:abcbourse.com'],
+  ['Boursier.com','site:boursier.com'],
+  ['BFM Bourse','site:bfmtv.com bourse'],
+  ['Le Revenu','site:lerevenu.com'],
+  ['Capital Bourse','site:capital.fr bourse'],
+  ['Le Figaro Bourse','site:lefigaro.fr bourse'],
+  ['Les Échos Marchés','site:lesechos.fr bourse'],
+  ['Café de la Bourse','site:cafedelabourse.com'],
+  ['Mieux Vivre Votre Argent','site:mieuxvivre-votreargent.fr'],
+].map(([source,q])=>({url:GNS+encodeURIComponent(q+' when:3d')+'&hl=fr&gl=FR&ceid=FR:fr',source,country:'fr',lang:'fr',fixed:true}));
 const RSS_SOURCES = [
+  ...PRESSE_BOURSE_FR,
+  // ── Google News Économie par pays (pays figé = fixed) ──
+  {url:GN+'hl=de&gl=DE&ceid=DE:de',       source:'Google News 🇩🇪', country:'de', lang:'de', fixed:true},
+  {url:GN+'hl=es&gl=ES&ceid=ES:es',       source:'Google News 🇪🇸', country:'es', lang:'es', fixed:true},
+  {url:GN+'hl=it&gl=IT&ceid=IT:it',       source:'Google News 🇮🇹', country:'it', lang:'it', fixed:true},
+  {url:GN+'hl=nl&gl=NL&ceid=NL:nl',       source:'Google News 🇳🇱', country:'nl', lang:'nl', fixed:true},
+  {url:GN+'hl=fr&gl=BE&ceid=BE:fr',       source:'Google News 🇧🇪', country:'be', lang:'fr', fixed:true},
+  {url:GN+'hl=fr&gl=CH&ceid=CH:fr',       source:'Google News 🇨🇭', country:'ch', lang:'fr', fixed:true},
+  {url:GN+'hl=sv&gl=SE&ceid=SE:sv',       source:'Google News 🇸🇪', country:'se', lang:'sv', fixed:true},
+  {url:GN+'hl=en-GB&gl=GB&ceid=GB:en',    source:'Google News 🇬🇧', country:'gb', lang:'en', fixed:true},
+  {url:GN+'hl=en-HK&gl=HK&ceid=HK:en',    source:'Google News 🇭🇰', country:'cn', lang:'en', fixed:true},
+  {url:GNS+'China+economy+OR+Chinese+stocks+OR+PBOC+when:2d&hl=en-US&gl=US&ceid=US:en', source:'Google News Chine', country:'cn', lang:'en', fixed:true},
+  {url:GN+'hl=ja&gl=JP&ceid=JP:ja',       source:'Google News 🇯🇵', country:'jp', lang:'ja', fixed:true},
+  {url:GN+'hl=en-IN&gl=IN&ceid=IN:en',    source:'Google News 🇮🇳', country:'in', lang:'en', fixed:true},
+  {url:GN+'hl=pt-BR&gl=BR&ceid=BR:pt-419',source:'Google News 🇧🇷', country:'br', lang:'pt', fixed:true},
   // ── Google News — agrégateur très stable (FR + EN) ──
   {url:'https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=fr&gl=FR&ceid=FR:fr', source:'Google News Éco FR', country:'fr', lang:'fr'},
   {url:'https://news.google.com/rss/search?q=bourse+OR+%22CAC+40%22+when:2d&hl=fr&gl=FR&ceid=FR:fr', source:'Google News Bourse', country:'fr', lang:'fr'},
@@ -764,22 +742,22 @@ const RSS_SOURCES = [
   {url:'https://www.barrons.com/xml/rss/3_7566.xml',                             source:'Barron\'s',               country:'us', lang:'en'},
   // ════ ASIE ════
   // ── Caixin — Chine indépendante ──
-  {url:'https://www.caixinglobal.com/rss/home.xml',                              source:'Caixin Global 🇨🇳',       country:'cn', lang:'en'},
+  {url:'https://www.caixinglobal.com/rss/home.xml',                              source:'Caixin Global 🇨🇳',       country:'cn', lang:'en', fixed:true},
   // ── SCMP — Hong Kong ──
-  {url:'https://www.scmp.com/rss/91/feed',                                       source:'S. China Morning Post 🇭🇰', country:'cn', lang:'en'},
+  {url:'https://www.scmp.com/rss/91/feed',                                       source:'S. China Morning Post 🇭🇰', country:'cn', lang:'en', fixed:true},
   // ── Nikkei Asia — Japon ──
-  {url:'https://asia.nikkei.com/rss/feed/nar',                                   source:'Nikkei Asia 🇯🇵',         country:'jp', lang:'en'},
+  {url:'https://asia.nikkei.com/rss/feed/nar',                                   source:'Nikkei Asia 🇯🇵',         country:'jp', lang:'en', fixed:true},
   // ── Economic Times — Inde ──
-  {url:'https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms',   source:'Economic Times 🇮🇳',      country:'in', lang:'en'},
-  {url:'https://economictimes.indiatimes.com/news/economy/rssfeeds/1373380680.cms', source:'ET Economy 🇮🇳',      country:'in', lang:'en'},
+  {url:'https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms',   source:'Economic Times 🇮🇳',      country:'in', lang:'en', fixed:true},
+  {url:'https://economictimes.indiatimes.com/news/economy/rssfeeds/1373380680.cms', source:'ET Economy 🇮🇳',      country:'in', lang:'en', fixed:true},
   // ── Korea Herald — Corée ──
   {url:'https://www.koreaherald.com/common/rss_xml.php?ct=102',                  source:'Korea Herald 🇰🇷',        country:'jp', lang:'en'},
   // ════ MOYEN-ORIENT ════
   {url:'https://www.arabnews.com/cat/12/rss.xml',                                source:'Arab News 🇸🇦',           country:'us', lang:'en'},
   // ════ EUROPE CONTINENTALE ════
-  {url:'https://www.handelsblatt.com/rss',                                       source:'Handelsblatt 🇩🇪',        country:'de', lang:'de'},
-  {url:'https://www.expansion.com/rss/2.0/portada.xml',                         source:'Expansión 🇪🇸',           country:'es', lang:'es'},
-  {url:'https://www.ilsole24ore.com/rss/economia--finanza.xml',                  source:'Il Sole 24 Ore 🇮🇹',      country:'it', lang:'it'},
+  {url:'https://www.handelsblatt.com/rss',                                       source:'Handelsblatt 🇩🇪',        country:'de', lang:'de', fixed:true},
+  {url:'https://www.expansion.com/rss/2.0/portada.xml',                         source:'Expansión 🇪🇸',           country:'es', lang:'es', fixed:true},
+  {url:'https://www.ilsole24ore.com/rss/economia--finanza.xml',                  source:'Il Sole 24 Ore 🇮🇹',      country:'it', lang:'it', fixed:true},
   // ════ RÉGLEMENTAIRES ════
   {url:'https://www.amf-france.org/fr/rss',                                      source:'AMF France',              country:'fr', lang:'fr', reg:true},
   {url:'https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=8-K&dateb=&owner=include&count=10&search_text=&output=atom', source:'SEC EDGAR 8-K', country:'us', lang:'en', reg:true},
@@ -791,19 +769,25 @@ const RSS_SOURCES = [
 ];
 
 function detectCountry(t){
-  const s=t.toLowerCase();
-  if(s.includes('chine')||s.includes('china')||s.includes('pékin')||s.includes('beijing')||s.includes('byd')||s.includes('alibaba')||s.includes('huawei')||s.includes('shanghai'))return 'cn';
-  if(s.includes('france')||s.includes('cac')||s.includes('macron')||s.includes('paris bourse')||s.includes('elysée'))return 'fr';
-  if(s.includes('allemagne')||s.includes('dax')||s.includes('berlin')||s.includes('volkswagen')||s.includes('deutsche'))return 'de';
-  if(s.includes('espagne')||s.includes('ibex')||s.includes('madrid')||s.includes('santander'))return 'es';
-  if(s.includes('italie')||s.includes('mib')||s.includes('milan')||s.includes('ferrari')||s.includes('unicredit'))return 'it';
-  if(s.includes('suisse')||s.includes('swiss')||s.includes('zurich')||s.includes('nestl')||s.includes('novartis'))return 'ch';
-  if(s.includes('london')||s.includes('ftse')||s.includes('britain')||s.includes('uk')||s.includes('royaume-uni'))return 'gb';
-  if(s.includes('nikkei')||s.includes('japon')||s.includes('tokyo')||s.includes('toyota')||s.includes('japan'))return 'jp';
-  if(s.includes('nasdaq')||s.includes('s&p')||s.includes('wall street')||s.includes('nvidia')||s.includes('apple')||s.includes('fed ')||s.includes('américain'))return 'us';
-  if(s.includes('inde')||s.includes('india')||s.includes('sensex')||s.includes('mumbai'))return 'in';
-  if(s.includes('brésil')||s.includes('brazil')||s.includes('bovespa')||s.includes('petrobras'))return 'br';
-  return 'fr';
+  const s=' '+t.toLowerCase().replace(/[^a-z0-9àâäéèêëîïôöùûüç&]+/g,' ')+' ';
+  const has=w=>s.includes(' '+w+' ')||(w.length>5&&s.includes(' '+w));
+  const map=[
+    ['cn',['chine','china','chinese','chinois','pékin','beijing','shanghai','shenzhen','hong kong','byd','alibaba','huawei','tencent','pboc','yuan']],
+    ['jp',['japon','japan','japanese','tokyo','nikkei','toyota','sony','boj','yen']],
+    ['in',['inde','india','indian','sensex','nifty','mumbai','rbi']],
+    ['br',['brésil','brazil','brasil','bovespa','petrobras','real brésilien']],
+    ['de',['allemagne','germany','german','dax','berlin','francfort','frankfurt','volkswagen','bundesbank','siemens']],
+    ['es',['espagne','spain','spanish','ibex','madrid','santander','iberdrola','inditex']],
+    ['it',['italie','italy','italian','milan','unicredit','ferrari','ftse mib']],
+    ['ch',['suisse','swiss','switzerland','zurich','genève','nestlé','novartis','roche','ubs','bns']],
+    ['nl',['pays-bas','netherlands','dutch','amsterdam','aex','asml']],
+    ['be',['belgique','belgium','bruxelles','bel 20']],
+    ['gb',['royaume-uni','britain','british','london','londres','ftse','bank of england','sterling']],
+    ['us',['wall street','nasdaq','s&p','dow jones','fed','federal reserve','nvidia','apple','microsoft','amazon','tesla','américain','états-unis','united states','u s','trump']],
+    ['fr',['france','français','française','cac','cac 40','paris','bercy','élysée','amf','sbf 120','euronext paris']],
+  ];
+  for(const [c,words] of map){ if(words.some(has))return c; }
+  return null;
 }
 function detectTopic(t){
   const s=t.toLowerCase();
@@ -829,6 +813,7 @@ function detectLang(article){
   if(src.includes('🇮🇹')||src.includes('Sole'))return 'it';
   if(src.includes('🇰🇷')||src.includes('Korea'))return 'ko';
   return 'en';
+
 }
 
 function needsTranslation(article){
@@ -856,7 +841,7 @@ async function deepLTranslate(text, srcLang='en'){
   }catch(e){}
   // Fallback Google Translate si MyMemory échoue
   try{
-    const url=`https://translate.googleapis.com/translate_a/single?client=gtx&sl=${srcLang}&tl=fr&dt=t&q=${encodeURIComponent(clean)}`;
+    const url=`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=fr&dt=t&q=${encodeURIComponent(clean)}`;
     const r=await fetch(url,{signal:AbortSignal.timeout(5000)});
     if(r.ok){
       const data=await r.json();
@@ -911,7 +896,10 @@ function parseRSS(xml){
     const link=(e.match(/<link[^>]*href="([^"]+)"/i)||e.match(/<link[^>]*>([^<]+)/i)||[])[1]||'';
     const desc=getTag(e,'description')||getTag(e,'summary')||getTag(e,'content');
     const date=getTag(e,'pubDate')||getTag(e,'published')||getTag(e,'updated')||getTag(e,'dc:date');
-    if(title.length>5)items.push({title,link:link.trim(),description:desc.slice(0,400),pubDate:date});
+    const publisher=getTag(e,'source');
+    let t=title; if(publisher&&t.endsWith(' - '+publisher))t=t.slice(0,-(publisher.length+3));
+    let d=desc; if(/news\.google\./.test(link)){d=publisher?('Source : '+publisher):'';}
+    if(t.length>5)items.push({title:t,link:link.trim(),description:d.slice(0,400),pubDate:date,publisher});
   }
   return items;
 }
@@ -922,13 +910,28 @@ async function fetchViaProxy(p,src){
   if(p.type==='json2'){
     const d=await r.json();
     if(d.status!=='ok'||!d.items?.length)throw new Error(p.name+' vide');
-    return d.items.map(i=>({title:(i.title||'').replace(/<[^>]*>/g,'').trim(),link:i.link||'',
+    return d.items.map(i=>({title:(i.title||'').replace(/<[^>]*>/g,'').trim().replace(/ - [^-]{2,60}$/,m=>/news\.google/.test(src.url)?'':m),link:i.link||'',
       description:(i.description||i.content||'').replace(/<[^>]*>/g,'').trim().slice(0,400),pubDate:i.pubDate||''}));
   }
   const xml=p.type==='jsonwrap'?(await r.json()).contents:await r.text();
   const items=parseRSS(xml);
   if(!items.length)throw new Error(p.name+' XML vide');
   return items;
+}
+
+// Récupère un flux (RSS/Atom) brut via les proxies — utilisé par tous les onglets
+async function fetchFeed(url){ return fetchRSS({url,source:'',country:'fr',lang:'fr',fixed:true}); }
+// Récupère un texte quelconque (JSON Yahoo…) via les proxies texte
+async function fetchTextViaProxies(url){
+  for(const p of RSS_PROXIES.filter(p=>p.type!=='json2')){
+    try{
+      const r=await fetch(p.url(url),{signal:AbortSignal.timeout(10000),cache:'no-store'});
+      if(!r.ok)continue;
+      const txt=p.type==='jsonwrap'?(await r.json()).contents:await r.text();
+      if(txt&&txt.length>20)return txt;
+    }catch(e){}
+  }
+  return null;
 }
 
 async function fetchRSS(src){
@@ -941,9 +944,9 @@ async function fetchRSS(src){
       const items=await fetchViaProxy(p,src);
       proxyFails[p.name]=0;
       return items.map(item=>{
-        const c=detectCountry(item.title+' '+item.description)||src.country;
-        return {title:item.title,description:item.description,link:item.link||'#',pubDate:item.pubDate||'',
-          source:src.source,country:c,flag:FLAGS[c]||'🌍',topic:detectTopic(item.title+' '+item.description),
+        const c=src.fixed?src.country:(detectCountry(item.title+' '+item.description)||src.country);
+        return {title:item.title,description:item.description||item.publisher||'',link:item.link||'#',pubDate:item.pubDate||'',
+          source:src.source,publisher:item.publisher||'',country:c,flag:FLAGS[c]||'🌍',topic:detectTopic(item.title+' '+item.description),
           lang:src.lang||'en',real:true,translated:false};
       }).filter(a=>a.title.length>10&&!a.title.includes('MYMEMORY'));
     }catch(e){proxyFails[p.name]=(proxyFails[p.name]||0)+1;}
@@ -959,6 +962,13 @@ async function runLimited(list,fn,limit=5){
   return out;
 }
 
+function buildSourceFilter(){
+  const sel=document.getElementById('sourceFilter'); if(!sel)return;
+  const cur=sel.value;
+  const names=[...new Set(allNews.map(a=>a.source))].sort((a,b)=>a.localeCompare(b,'fr'));
+  sel.innerHTML='<option value="all">🌍 Toutes les sources</option>'+names.map(n=>`<option value="${n.replace(/"/g,'&quot;')}">${n}</option>`).join('');
+  if(names.includes(cur))sel.value=cur;
+}
 function saveNewsCache(items){
   try{localStorage.setItem(NEWS_CACHE_KEY,JSON.stringify({ts:Date.now(),items:items.slice(0,300)}));}catch(e){}
 }
@@ -997,8 +1007,8 @@ async function loadNews(){
       const d=new Date(cache.ts);
       newsBanner(`⚠️ Flux RSS injoignables (0/${srcs.length} sources). Affichage du dernier chargement réussi du <b>${d.toLocaleDateString('fr-FR')} à ${d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</b>.`,'var(--red-bg)');
     }else{
-      allNews=getNewsArticles();renderNews();
-      newsBanner(`⛔ Flux RSS injoignables (0/${srcs.length} sources) et aucun cache. Les articles ci-dessous sont des <b>exemples statiques</b>, pas l'actualité. Ouvrez la console (F12) pour le détail.`,'var(--red-bg)');
+      allNews=[];renderNews();
+      newsBanner(`⛔ Flux RSS injoignables (0/${srcs.length} sources) et aucun cache — Je ne sais pas. Ouvrez la console (F12) pour le détail.`,'var(--red-bg)');
     }
     console.warn('RSS : échec de toutes les sources',proxyFails);
     return;
@@ -1010,6 +1020,7 @@ async function loadNews(){
 
   allNews=fetched;
   saveNewsCache(fetched);
+  buildSourceFilter();
   spin('rbtn1',false);
   renderNews();
   updateRefreshTime();
@@ -1017,7 +1028,7 @@ async function loadNews(){
 
   document.getElementById('newsList').insertAdjacentHTML('afterbegin',
     `<div id="transBar" style="padding:8px 16px;font-size:11px;color:var(--muted);background:var(--blue-bg);border-bottom:1px solid var(--border);font-style:italic">🔄 Traduction en cours…</div>`);
-  const toTranslate=fetched.filter(a=>needsTranslation(a)).slice(0,15);
+  const toTranslate=fetched.filter(a=>needsTranslation(a)).slice(0,40);
   for(let i=0;i<toTranslate.length;i+=3){
     const batch=toTranslate.slice(i,i+3);
     const translated=await Promise.all(batch.map(a=>translateArticle(a)));
@@ -1033,7 +1044,6 @@ async function loadNews(){
   saveNewsCache(allNews);
   newsLoading=false;
 }
-setInterval(()=>{if(!document.hidden)loadNews();},NEWS_REFRESH_MS);
 const _renderNewsOrig=renderNews;
 renderNews=function(){_renderNewsOrig();if(lastBanner){const b=lastBanner;newsBanner(b.html,b.color);}};
 
@@ -1132,67 +1142,30 @@ document.getElementById('tfilter').addEventListener('click',e=>{
 // ══════════════════════════════════════════════════════
 // TAB 2 — SOURCES RÉGLEMENTAIRES
 // ══════════════════════════════════════════════════════
-function getRegArticles(){
-  return {
-    amf:[
-      {title:'AMF — Franchissement de seuil : BlackRock monte à 10% dans Hermès International',description:'Le géant américain de la gestion d\'actifs (10 000 Mds$ sous gestion) déclare avoir franchi à la hausse le seuil de 10% du capital d\'Hermès International, valorisé ~220 Mds€. Déclaration d\'intention : investissement purement passif, pas d\'ambition de prise de contrôle. BlackRock détient ces titres via ses fonds indiciels ETF. À surveiller : un franchissement ultérieur à 15% déclencherait une nouvelle obligation déclarative.',source:'AMF BDIF',country:'fr',pubDate:'2026-02-27T09:15:00Z',link:'https://bdif.amf-france.org/fr/search?query=BlackRock+Hermes',type:'Franchissement seuil'},
-      {title:'AMF — OPA simplifiée déposée sur Eutelsat Communications à 3,50€/action',description:'Une offre publique d\'achat simplifiée a été déposée sur Eutelsat Communications par un consortium d\'actionnaires de référence. Le prix de 3,50€ représente une prime de 22% sur le dernier cours non affecté. L\'opération pourrait déboucher sur un retrait de la cote si le seuil de 90% est atteint.',source:'AMF BDIF',country:'fr',pubDate:'2026-02-25T14:30:00Z',link:'https://bdif.amf-france.org/fr/search?query=Eutelsat+OPA',type:'OPA'},
-      {title:'AMF — Enquête ouverte : transactions suspectes détectées avant profit warning sur Soitec',description:'L\'AMF a ouvert une enquête formelle après avoir identifié des ventes massives d\'options put sur le titre Soitec dans les 48h précédant l\'annonce d\'un profit warning de -30%. Les transactions concernent plusieurs comptes domiciliés dans des juridictions étrangères.',source:'AMF',country:'fr',pubDate:'2026-02-24T11:00:00Z',link:'https://www.amf-france.org/fr/recherche?query=Soitec',type:'Enquête'},
-      {title:'AMF — Franchissement seuil : Amundi Asset Management franchit les 5% dans Rexel',description:'Amundi, premier gestionnaire d\'actifs européen (2 000 Mds€ sous gestion), déclare avoir franchi à la hausse le seuil légal de 5% du capital et des droits de vote de Rexel SA. La position a été constituée progressivement via ses fonds actifs et passifs.',source:'AMF BDIF',country:'fr',pubDate:'2026-02-21T08:45:00Z',link:'https://bdif.amf-france.org/fr/search?query=Amundi+Rexel',type:'Franchissement seuil'},
-      {title:'AMF — Sanction : 2,5 M€ d\'amende pour délit d\'initié sur un titre du SBF 120',description:'La Commission des sanctions de l\'AMF a prononcé une amende de 2,5 millions d\'euros à l\'encontre d\'un directeur financier reconnu coupable d\'avoir utilisé des informations privilégiées relatives à une acquisition imminente.',source:'AMF',country:'fr',pubDate:'2026-02-18T16:00:00Z',link:'https://www.amf-france.org/fr/sanctions-et-transactions/decisions-de-la-commission-des-sanctions',type:'Sanction'},
-      {title:'AMF — Avis Euronext : scission de Vivendi SE en 4 entités distinctes cotées',description:'Euronext Paris publie les conditions techniques de la scission de Vivendi SE en quatre sociétés indépendantes : Canal+ (Londres), Havas (Amsterdam), Louis Hachette Group (Paris) et Vivendi résiduel.',source:'AMF / Euronext',country:'fr',pubDate:'2026-02-14T10:00:00Z',link:'https://www.euronext.com/fr/search?query=Vivendi+scission',type:'Avis marché'},
-    ],
-    sec:[
-      {title:'SEC 8-K — Apple Inc. : T4 FY2024 supérieur aux attentes, guidance Q1 relevée',description:'Apple dépose son 8-K de résultats trimestriels. BPA ajusté de 2,18$ vs 2,11$ attendus. Chiffre d\'affaires à 124,3 Mds$ (+6% YoY). Division Services en hausse de 17% à 26,3 Mds$ — marge de 74%. Guidance Q1 FY2025 entre 125 et 128 Mds$.',source:'SEC EDGAR',country:'us',pubDate:'2026-02-28T22:00:00Z',link:'https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company=apple&type=8-K',type:'8-K Résultats'},
-      {title:'SEC 13-D — Elliott Management déclare 8,5% dans Phillips 66, demande scission',description:'Le fonds activiste Elliott Management dépose un 13-D révélant 8,5% dans Phillips 66. Il demande la cession des actifs midstream et un rachat d\'actions de 15 Mds$. Le fonds estime un potentiel de 80$ supplémentaires par action.',source:'SEC EDGAR',country:'us',pubDate:'2026-02-26T19:30:00Z',link:'https://efts.sec.gov/LATEST/search-index?q=%2213-D%22',type:'13-D Activiste'},
-      {title:'SEC 8-K — NVIDIA : contrat gouvernemental de 4 Mds$ pour infrastructure IA nationale',description:'NVIDIA dépose un 8-K pour un accord matériel portant sur la fourniture de 100 000 GPU H100/H200 à un gouvernement du G7 pour un programme d\'IA souveraine sur 3 ans.',source:'SEC EDGAR',country:'us',pubDate:'2026-02-25T15:00:00Z',link:'https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company=nvidia&type=8-K',type:'8-K Contrat'},
-      {title:'SEC Form 4 — Mark Zuckerberg cède 500 M$ d\'actions Meta Platforms',description:'Zuckerberg cède 2,7 millions d\'actions entre 490$ et 510$ via un plan 10b5-1 prédéfini. Les fonds financent la Chan Zuckerberg Initiative. Il conserve ~350 Mds$ via ses actions de classe B.',source:'SEC EDGAR',country:'us',pubDate:'2026-02-24T20:00:00Z',link:'https://efts.sec.gov/LATEST/search-index?q=%22Form+4%22',type:'Form 4 Insider'},
-      {title:'SEC 13-F — Berkshire Hathaway Q4 : position de 6,7 Mds$ dans Chubb révélée',description:'Le 13-F de Berkshire révèle une participation de 6,7 Mds$ dans l\'assureur Chubb, construite discrètement sur 12 mois avec autorisation SEC de confidentialité temporaire.',source:'SEC EDGAR',country:'us',pubDate:'2026-02-15T17:00:00Z',link:'https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company=berkshire&type=13-F',type:'13-F Positions'},
-      {title:'SEC S-1 — IPO Klarna : la fintech suédoise BNPL vise le NYSE à 15-20 Mds$',description:'Klarna dépose son S-1 pour le NYSE. 150 millions d\'utilisateurs, GMV de 92 Mds$ en 2024. Valorisation en retrait vs 45 Mds$ en 2021. Goldman Sachs et Morgan Stanley orchestrent l\'opération.',source:'SEC EDGAR',country:'us',pubDate:'2026-02-10T14:00:00Z',link:'https://efts.sec.gov/LATEST/search-index?q=%22S-1%22',type:'S-1 IPO'},
-    ]
-  };
-}
+let regLive={amf:[],sec:[]}, opaLive=[];
+function getRegArticles(){ return regLive; }
+function emptyMsg(txt){return `<div class="loader" style="color:var(--muted)">${txt}</div>`;}
+function mapFeed(items,extra){return items.map(i=>({title:i.title,description:i.description,link:i.link||'#',pubDate:i.pubDate,real:true,...extra}));}
+function sortByDate(a){return a.sort((x,y)=>(new Date(y.pubDate).getTime()||0)-(new Date(x.pubDate).getTime()||0));}
+function dedupe(a){const s=new Set();return a.filter(x=>{const k=x.title.slice(0,50).toLowerCase();if(s.has(k))return false;s.add(k);return true;});}
 
 async function loadReg(){
   spin('rbtn2',true);
-  // Try real AMF RSS
-  let amfItems=[], secItems=[];
-  try{
-    const amfRSS='https://www.amf-france.org/fr/rss';
-    const r=await fetch(`https://corsproxy.io/?${encodeURIComponent(amfRSS)}`,{signal:AbortSignal.timeout(6000)});
-    if(r.ok){
-      const txt=await r.text();
-      const doc=new DOMParser().parseFromString(txt,'text/xml');
-      amfItems=Array.from(doc.querySelectorAll('item')).slice(0,8).map(item=>({
-        title:(item.querySelector('title')?.textContent||'').replace(/<[^>]*>/g,'').trim(),
-        description:(item.querySelector('description')?.textContent||'').replace(/<[^>]*>/g,'').slice(0,180).trim(),
-        link:item.querySelector('link')?.textContent||'https://www.amf-france.org',
-        pubDate:item.querySelector('pubDate')?.textContent||'',
-        source:'AMF',country:'fr',type:'Décision AMF',real:true
-      })).filter(a=>a.title.length>5);
-    }
-  }catch(e){}
-  // Try SEC EDGAR 8-K feed
-  try{
-    const secRSS='https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=8-K&dateb=&owner=include&count=10&search_text=&output=atom';
-    const r=await fetch(`https://corsproxy.io/?${encodeURIComponent(secRSS)}`,{signal:AbortSignal.timeout(6000)});
-    if(r.ok){
-      const txt=await r.text();
-      const doc=new DOMParser().parseFromString(txt,'text/xml');
-      secItems=Array.from(doc.querySelectorAll('entry')).slice(0,8).map(item=>({
-        title:(item.querySelector('title')?.textContent||'').replace(/<[^>]*>/g,'').trim(),
-        description:(item.querySelector('summary')?.textContent||'').replace(/<[^>]*>/g,'').slice(0,180).trim(),
-        link:item.querySelector('link')?.getAttribute('href')||'https://www.sec.gov',
-        pubDate:item.querySelector('updated')?.textContent||'',
-        source:'SEC EDGAR',country:'us',type:'8-K Live',real:true
-      })).filter(a=>a.title.length>5);
-    }
-  }catch(e){}
-  const demo=getRegArticles();
-  const finalAMF=amfItems.length>2?[...amfItems,...demo.amf.slice(0,3)]:demo.amf;
-  const finalSEC=secItems.length>2?[...secItems,...demo.sec.slice(0,3)]:demo.sec;
+  document.getElementById('regListAMF').innerHTML=emptyMsg('Chargement…');
+  document.getElementById('regListSEC').innerHTML=emptyMsg('Chargement…');
+  const [amfRSS,amfGN,sec8k,secGN]=await Promise.all([
+    fetchFeed('https://www.amf-france.org/fr/rss'),
+    fetchFeed(GNS+'%22Autorit%C3%A9+des+march%C3%A9s+financiers%22+OR+%22franchissement+de+seuil%22+when:14d&hl=fr&gl=FR&ceid=FR:fr'),
+    fetchFeed('https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=8-K&dateb=&owner=include&count=20&search_text=&output=atom'),
+    fetchFeed(GNS+'%22SEC+filing%22+OR+%228-K%22+OR+%2213D%22+when:7d&hl=en-US&gl=US&ceid=US:en'),
+  ]);
+  const amf=sortByDate(dedupe([...mapFeed(amfRSS,{source:'AMF',country:'fr',type:'AMF officiel'}),...mapFeed(amfGN,{source:'Presse (Google News)',country:'fr',type:'AMF / seuils'})])).slice(0,20);
+  const sec=sortByDate(dedupe([...mapFeed(sec8k,{source:'SEC EDGAR',country:'us',type:'8-K Live'}),...mapFeed(secGN,{source:'Presse US (Google News)',country:'us',type:'SEC'})])).slice(0,20);
+  regLive={amf,sec};
   spin('rbtn2',false);
-  renderReg(finalAMF, finalSEC);
+  renderReg(amf,sec);
+  if(!amf.length)document.getElementById('regListAMF').innerHTML=emptyMsg('⛔ Flux AMF injoignables — Je ne sais pas (aucune donnée récupérée).');
+  if(!sec.length)document.getElementById('regListSEC').innerHTML=emptyMsg('⛔ Flux SEC injoignables — Je ne sais pas (aucune donnée récupérée).');
 }
 
 function renderReg(amf, sec){
@@ -1228,74 +1201,44 @@ function renderReg(amf, sec){
 // ══════════════════════════════════════════════════════
 // TAB 3 — OPA / M&A RADAR
 // ══════════════════════════════════════════════════════
-function getOPAArticles(){
-  return [
-    {title:'🚨 OPA hostile — UniCredit franchit 29,9% de Commerzbank, ultimatum à Berlin',
-    description:'UniCredit détient désormais 29,9% de Commerzbank après avoir exercé ses options BCE. Le CEO Andrea Orcel fixe un délai au gouvernement Scholz avant le dépôt officiel d\'une OPA à 15,60€/action.',
-    source:'Reuters / AMF',country:'de',pubDate:'2026-03-02T10:00:00Z',status:'En cours',prime:'24%',target:'Commerzbank (CBK)',acquirer:'UniCredit (UCG)'},
-
-    {title:'🚨 OPA confirmée — LVMH dépose une offre à 22 Mds€ sur Richemont',
-    description:'Bernard Arnault confirme une offre à 145 CHF/action sur Richemont, valorisant le groupe à 82 Mds CHF. La famille Rupert négocie un droit de veto sur la marque Cartier. Vote des minoritaires attendu fin mars.',
-    source:'Bloomberg / Les Échos',country:'ch',pubDate:'2026-03-01T14:00:00Z',status:'Annoncée',prime:'31%',target:'Richemont (CFR)',acquirer:'LVMH (MC)'},
-
-    {title:'⚡ SEC 13-D — Starboard Value prend 9% dans Pfizer, réclame restructuration',
-    description:'Le fonds activiste Starboard Value révèle 9% dans Pfizer (~22 Mds$). Il demande la cession de la division Paxlovid et un programme de rachats d\'actions de 15 Mds$ sur 18 mois.',
-    source:'SEC EDGAR (13-D)',country:'us',pubDate:'2026-02-28T18:00:00Z',status:'Activiste',prime:'—',target:'Pfizer (PFE)',acquirer:'Starboard Value'},
-
-    {title:'🚨 OPA finalisée — Mars rachète Kellanova (Pringles) pour 36 Mds$',
-    description:'Mars Inc. finalise l\'acquisition de Kellanova (Pringles, Cheez-It, Pop-Tarts) pour 83,50$/action après 14 mois de processus antitrust. Plus grande acquisition alimentaire de la décennie.',
-    source:'SEC EDGAR / Reuters',country:'us',pubDate:'2026-02-27T16:00:00Z',status:'Finalisée',prime:'33%',target:'Kellanova (K)',acquirer:'Mars Inc.'},
-
-    {title:'⚡ AMF — Bolloré franchit 30% de Vivendi, OPA obligatoire imminente',
-    description:'Le groupe Bolloré déclare à l\'AMF avoir franchi le seuil de 30% du capital de Vivendi post-scission. Une OPA obligatoire doit être déposée dans les 15 jours ouvrés selon la réglementation AMF.',
-    source:'AMF BDIF',country:'fr',pubDate:'2026-02-26T11:00:00Z',status:'Pré-OPA',prime:'—',target:'Vivendi (VIV)',acquirer:'Groupe Bolloré'},
-
-    {title:'🚨 OPA annoncée — Sanofi rachète Blueprint Medicines pour 8,7 Mds$',
-    description:'Sanofi lance une OPA à 120$/action sur Blueprint Medicines, spécialiste des inhibiteurs de KIT pour les mastocytoses. Prime de 38%. Renforce le pipeline oncologie-immunologie du groupe.',
-    source:'Les Échos / SEC',country:'us',pubDate:'2026-02-24T09:00:00Z',status:'Annoncée',prime:'38%',target:'Blueprint Medicines (BPMC)',acquirer:'Sanofi (SAN)'},
-
-    {title:'⚡ AMF — TotalEnergies franchit 15% dans Engie, déclaration d\'intentions',
-    description:'TotalEnergies déclare à l\'AMF avoir acquis 15,2% du capital d\'Engie via le marché. La société précise envisager une montée supplémentaire mais exclut toute OPA à court terme.',
-    source:'AMF BDIF',country:'fr',pubDate:'2026-02-21T10:00:00Z',status:'Investissement',prime:'—',target:'Engie (ENGI)',acquirer:'TotalEnergies (TTE)'},
-
-    {title:'⚡ SEC 13-F — Berkshire Hathaway renforce sa position à 28,5% dans Occidental',
-    description:'Le 13-F trimestriel de Berkshire Hathaway révèle une augmentation dans Occidental Petroleum à 28,5% du capital. Buffett renforce sa conviction malgré la baisse du pétrole.',
-    source:'SEC EDGAR (13-F)',country:'us',pubDate:'2026-02-15T20:00:00Z',status:'Investissement',prime:'—',target:'Occidental Petroleum (OXY)',acquirer:'Berkshire Hathaway (BRK)'},
-  ];
+function getOPAArticles(){ return opaLive; }
+function opaType(t){
+  const s=t.toLowerCase();
+  if(/13d|13-d|13g|activist/.test(s))return 'Activiste / 13-D';
+  if(/seuil|stake|participation/.test(s))return 'Seuil / participation';
+  if(/opa|offre publique|tender offer|takeover|bid/.test(s))return 'OPA / offre';
+  if(/fusion|merger|rachat|acqui|acquire|deal/.test(s))return 'Fusion / rachat';
+  return 'M&A';
 }
-
-function loadOPA(){
+async function loadOPA(){
   spin('rbtn3',true);
-  setTimeout(()=>{
-    spin('rbtn3',false);
-    const items=getOPAArticles();
-    const statusColor={
-      'En cours':'rgba(234,179,8,.15)','Annoncée':'rgba(34,197,94,.1)','Rumeur':'rgba(168,85,247,.1)',
-      'Finalisée':'rgba(59,130,246,.1)','Pré-OPA':'rgba(239,68,68,.1)','Activiste':'rgba(239,68,68,.1)',
-      'Investissement':'rgba(34,197,94,.1)','Échouée':'rgba(107,114,153,.1)'
-    };
-    const statusText={
-      'En cours':'#fde68a','Annoncée':'#86efac','Rumeur':'#d8b4fe',
-      'Finalisée':'#93c5fd','Pré-OPA':'#fca5a5','Activiste':'#fca5a5',
-      'Investissement':'#86efac','Échouée':'#9ca3af'
-    };
-    document.getElementById('opaList').innerHTML=items.map((a,i)=>`
-      <a class="card alert" href="javascript:void(0)" style="animation-delay:${i*.04}s;background:${statusColor[a.status]||'var(--surface)'}">
+  document.getElementById('opaList').innerHTML=emptyMsg('Chargement…');
+  const [fr,eu,us,d13]=await Promise.all([
+    fetchFeed(GNS+'OPA+OR+%22offre+publique%22+OR+%22franchissement+de+seuil%22+OR+%22projet+de+rachat%22+when:7d&hl=fr&gl=FR&ceid=FR:fr'),
+    fetchFeed(GNS+'takeover+bid+OR+%22tender+offer%22+Europe+when:7d&hl=en-GB&gl=GB&ceid=GB:en'),
+    fetchFeed(GNS+'%22to+acquire%22+OR+%22merger+agreement%22+OR+%22takeover%22+when:3d&hl=en-US&gl=US&ceid=US:en'),
+    fetchFeed('https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=SC+13D&dateb=&owner=include&count=20&search_text=&output=atom'),
+  ]);
+  opaLive=sortByDate(dedupe([
+    ...mapFeed(fr,{source:'Presse FR (Google News)',country:'fr',lang:'fr'}),
+    ...mapFeed(eu,{source:'Presse UK/EU (Google News)',country:'gb',lang:'en'}),
+    ...mapFeed(us,{source:'Presse US (Google News)',country:'us',lang:'en'}),
+    ...mapFeed(d13,{source:'SEC EDGAR 13-D',country:'us',lang:'en'}),
+  ])).slice(0,40).map(a=>({...a,status:opaType(a.title)}));
+  spin('rbtn3',false);
+  if(!opaLive.length){document.getElementById('opaList').innerHTML=emptyMsg('⛔ Aucune source joignable — Je ne sais pas.');return;}
+  document.getElementById('opaList').innerHTML=opaLive.map((a,i)=>{
+    const href=a.lang==='fr'?a.link:`https://translate.google.com/translate?sl=auto&tl=fr&u=${encodeURIComponent(a.link)}`;
+    return `
+      <a class="card alert" href="${href}" target="_blank" rel="noopener" style="animation-delay:${i*.03}s">
         <div class="cm">
-          <span class="cs red">${a.source}</span>
-          <span class="cd"></span>
-          <span class="ct">${formatPubDate(a.pubDate)}</span>
-          <span>${FLAGS[a.country]||'🌍'}</span>
+          <span class="cs red">${a.source}</span><span class="cd"></span>
+          <span class="ct">${formatPubDate(a.pubDate)}</span><span>${FLAGS[a.country]||'🌍'}</span>
         </div>
         <div class="ctitle">${a.title}</div>
-        <div class="cdesc">${a.description}</div>
-        <div class="ctags" style="margin-top:10px">
-          <span class="tag" style="background:${statusColor[a.status]};color:${statusText[a.status]};border-color:transparent">${a.status}</span>
-          ${a.prime!=='—'?`<span class="tag hot">Prime ${a.prime}</span>`:''}
-          <span class="tag" style="font-size:9px;color:var(--muted)">${a.acquirer} → ${a.target}</span>
-        </div>
-      </a>`).join('');
-  },500);
+        ${a.description?`<div class="cdesc">${a.description}</div>`:''}
+        <div class="ctags"><span class="tag hot">${a.status}</span>${isFresh(a.pubDate)?'<span class="tag new">🔥 Récent</span>':''}</div>
+      </a>`;}).join('');
 }
 
 // ══════════════════════════════════════════════════════
@@ -1350,39 +1293,20 @@ async function loadAINews(){
   const list=document.getElementById('aiNewsList');
   if(!list)return;
   list.innerHTML=`<div class="loader"><div class="sp"></div><div>Chargement…</div></div>`;
-
-  const AI_STATIC=[
-    {source:'MIT Technology Review',title:'OpenAI GPT-5 : raisonnement multiétapes, sortie prévue mi-2026',description:'OpenAI prépare GPT-5 avec des capacités de planification avancées et une fenêtre de contexte étendue à 200k tokens. Le modèle cible les applications enterprise et la recherche scientifique.',topic:'llm',company:'OpenAI',pays:'us'},
-    {source:'VentureBeat',title:'Anthropic lève 3,5 Mds$ supplémentaires, valorisation à 61 Mds$',description:'Le créateur de Claude confirme un nouveau tour de table mené par Google. Les fonds sont destinés à l\'infrastructure de calcul et à la recherche sur la sécurité des systèmes IA.',topic:'financement',company:'Anthropic',pays:'us'},
-    {source:'Les Échos Tech',title:'Mistral AI déploie Le Chat Enterprise dans 40 pays',description:'La pépite française de l\'IA généralise son offre B2B avec des garanties de souveraineté des données en Europe. Partenariats signés avec BNP Paribas et Airbus.',topic:'application',company:'Mistral AI',pays:'fr'},
-    {source:'Bloomberg Tech',title:'Microsoft intègre Phi-4 dans Office 365 : 300 millions d\'utilisateurs concernés',description:'Le petit modèle de Microsoft, optimisé pour fonctionner on-device, équipe désormais Word, Excel et Outlook. Traitement des données en local sans envoi vers le cloud.',topic:'application',company:'Microsoft',pays:'us'},
-    {source:'TechCrunch',title:'DeepSeek V3 bat GPT-4o sur les benchmarks mathématiques',description:'Le laboratoire chinois publie un nouveau modèle open source qui surpasse les meilleurs modèles occidentaux sur MATH et AIME. Coût d\'entraînement annoncé : 6M$ seulement.',topic:'llm',company:'DeepSeek',pays:'cn'},
-    {source:'Wired',title:'UE : l\'AI Act entre en vigueur, premières sanctions possibles dès août',description:'Les systèmes IA à haut risque doivent désormais satisfaire aux exigences de transparence et d\'auditabilité. Les amendes peuvent atteindre 6% du chiffre d\'affaires mondial.',topic:'regulation',company:'Union Européenne',pays:'eu'},
-    {source:'The Verge',title:'Google Gemini 2.0 Ultra intègre les données boursières en temps réel',description:'Le modèle multimodal de Google peut désormais analyser des graphiques financiers, lire des rapports PDF et accéder aux cours en direct via Google Finance.',topic:'application',company:'Google',pays:'us'},
-    {source:'VentureBeat',title:'Startups IA : 47 Mds$ levés au T1 2026, record historique',description:'Le premier trimestre 2026 établit un record mondial d\'investissement dans l\'IA. Les secteurs santé, finance et industrie captent 60% des fonds selon CB Insights.',topic:'financement',company:'CB Insights',pays:'us'},
-  ];
-
-  const now=new Date();
-  list.innerHTML=AI_STATIC.map((a,i)=>{
-    const pubDate=new Date(now.getTime()-i*22*60000).toISOString();
-    const paysEmoji={us:'🇺🇸',cn:'🇨🇳',eu:'🇪🇺',fr:'🇫🇷'}[a.pays]||'🌍';
+  const srcs=[...AI_RSS_SOURCES,{url:GNS+'%22intelligence+artificielle%22+when:2d&hl=fr&gl=FR&ceid=FR:fr',source:'Google News IA 🇫🇷',lang:'fr'}];
+  const res=await runLimited(srcs,async s=>(await fetchFeed(s.url)).map(i=>({...i,source:s.source,lang:s.lang})),4);
+  const lim=Date.now()-7*864e5;
+  const items=sortByDate(dedupe(res.flat().filter(a=>{const t=new Date(a.pubDate).getTime();return isNaN(t)||t>lim;}))).slice(0,40);
+  if(!items.length){list.innerHTML=emptyMsg('⛔ Flux IA injoignables — Je ne sais pas.');return;}
+  list.innerHTML=items.map((a,i)=>{
+    const href=a.lang==='fr'?a.link:`https://translate.google.com/translate?sl=auto&tl=fr&u=${encodeURIComponent(a.link)}`;
     return `
-    <div class="card" style="animation-delay:${i*.04}s;border-left:3px solid var(--purple);cursor:default">
-      <div class="cm">
-        <span class="cs" style="color:var(--purple)">${a.source}</span>
-        <span class="cd"></span>
-        <span class="ct">${formatPubDate(pubDate)}</span>
-        <span>${paysEmoji}</span>
-        <span>🤖</span>
-      </div>
+    <a class="card" href="${href}" target="_blank" rel="noopener" style="animation-delay:${i*.03}s;border-left:3px solid var(--purple)">
+      <div class="cm"><span class="cs" style="color:var(--purple)">${a.source}</span><span class="cd"></span>
+        <span class="ct">${formatPubDate(a.pubDate)}</span><span>🤖</span></div>
       <div class="ctitle">${a.title}</div>
       ${a.description?`<div class="cdesc">${a.description}</div>`:''}
-      <div class="ctags">
-        ${a.topic?`<span class="tag reg">${a.topic}</span>`:''}
-        ${a.company?`<span class="tag">${a.company}</span>`:''}
-      </div>
-    </div>`;
-  }).join('');
+    </a>`;}).join('');
 }
 
 // ══════════════════════════════════════════════════════
@@ -1418,172 +1342,110 @@ const FR_RSS_SOURCES = [
   {url:'https://www.zonebourse.com/rss/actualites.xml',          source:'Zonebourse',           lang:'fr'},
 ];
 
-function renderFRCalendar(){
-  const tbody=document.getElementById('frCalBody');
-  if(!tbody)return;
-  const today=new Date();
-  today.setHours(0,0,0,0);
-  const upcoming=FR_EARNINGS.filter(e=>new Date(e.date)>=today).slice(0,15);
-  tbody.innerHTML=upcoming.map(e=>{
-    const dt=new Date(e.date);
-    const jours=['dim','lun','mar','mer','jeu','ven','sam'];
-    const mois=['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
-    const dateStr=`${jours[dt.getDay()]}. ${dt.getDate()} ${mois[dt.getMonth()]}`;
-    const isToday=dt.toDateString()===today.toDateString();
-    const isTomorrow=dt.toDateString()===new Date(today.getTime()+86400000).toDateString();
-    const urgence=isToday?'background:rgba(239,68,68,.08);':(isTomorrow?'background:rgba(245,158,11,.06);':'');
-    return `<tr style="border-bottom:1px solid var(--border);${urgence}cursor:pointer" title="${e.note}"
-      onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='${urgence.replace('background:','').replace(';','')}'">
-      <td style="padding:8px 6px;white-space:nowrap;font-size:11px">
-        ${isToday?'<strong style="color:#e53935">📍 Aujourd\'hui</strong>':isTomorrow?'<strong style="color:#f59e0b">Demain</strong>':dateStr}
-      </td>
-      <td style="padding:8px 6px;font-weight:700;font-size:12px;color:var(--text)">${e.name}
-        <span style="font-size:10px;color:var(--muted);font-weight:400"> ${e.ticker}</span>
-      </td>
-      <td style="padding:8px 6px;font-size:10px">
-        <span style="padding:2px 5px;border-radius:3px;background:${e.index==='CAC 40'?'rgba(0,35,149,.12)':'var(--surface)'};color:${e.index==='CAC 40'?'#002395':'var(--muted)'}">
-          ${e.index}
-        </span>
-      </td>
-      <td style="padding:8px 6px;font-size:11px;color:var(--text)">${e.consensus}</td>
-      <td style="padding:8px 6px;font-size:14px" title="${e.note}">${e.signal}</td>
-    </tr>`;
-  }).join('');
-
-  // Légende
-  document.getElementById('frCalendar').insertAdjacentHTML('beforeend',
-    `<div style="font-size:10px;color:var(--muted);margin-top:6px;display:flex;gap:12px;flex-wrap:wrap">
-      <span>🟢 Signal positif</span><span>🟡 Neutre / mixte</span>
-      <span>🔴 Signal négatif</span><span>⚠️ Très incertain</span>
-      <span style="font-style:italic">· Survolez pour le détail</span>
-    </div>`);
+function frCard(a,i){
+  return `
+    <a class="card" href="${a.link}" target="_blank" rel="noopener" style="animation-delay:${i*.03}s;border-left:3px solid #002395">
+      <div class="cm"><span class="cs" style="color:#002395">${a.source}</span><span class="cd"></span>
+        <span class="ct">${formatPubDate(a.pubDate)}</span><span>🇫🇷</span></div>
+      <div class="ctitle">${a.title}</div>
+      ${a.description?`<div class="cdesc">${a.description}</div>`:''}
+    </a>`;
+}
+async function renderFRCalendar(){
+  const box=document.getElementById('frCalendar'); if(!box)return;
+  box.innerHTML=emptyMsg('Chargement…');
+  const items=sortByDate(dedupe(mapFeed(await fetchFeed(GNS+'%22r%C3%A9sultats%22+(semestriels+OR+trimestriels+OR+annuels+OR+%22chiffre+d%27affaires%22)+(CAC+OR+SBF+OR+Euronext)+when:7d&hl=fr&gl=FR&ceid=FR:fr'),{source:'Presse FR (Google News)'})) ).slice(0,12);
+  box.innerHTML=`<div style="font-size:10px;color:var(--muted);margin-bottom:6px">Annonces de résultats publiées dans la presse (7 derniers jours). Calendrier prévisionnel des publications : <b>Je ne sais pas</b> — aucune source gratuite fiable intégrée ; consulter l'agenda de votre courtier ou le site investisseurs de chaque société.</div>`+
+    (items.length?`<div class="list">${items.map(frCard).join('')}</div>`:emptyMsg('⛔ Source injoignable — Je ne sais pas.'));
 }
 
 async function loadFRNews(){
   const list=document.getElementById('frNewsList');
   if(!list)return;
   list.innerHTML=`<div class="loader"><div class="sp"></div><div>Chargement…</div></div>`;
-
-  // Articles FR curatés — valeurs CAC 40 et SBF 120
-  const FR_STATIC=[
-    {source:'Les Échos',title:'CAC 40 : les bancaires portent l\'indice à la hausse',description:'BNP Paribas (+1,8%) et Société Générale (+2,1%) tirent le CAC 40. Les investisseurs anticipent un maintien des taux directeurs BCE en juin.',topic:'bourse',ticker:'BNP.PA',company:'BNP Paribas'},
-    {source:'Boursorama',title:'TotalEnergies relève son dividende trimestriel à 0,85€',description:'Le groupe pétrolier confirme la robustesse de son modèle malgré la baisse du Brent. Le dividende annualisé atteint 3,40€, soit un rendement de 5,4% au cours actuel.',topic:'dividende',ticker:'TTE.PA',company:'TotalEnergies'},
-    {source:'Reuters FR',title:'Sanofi : Dupixent dépasse les 14 Mds$ de revenus annuels',description:'Le médicament phare de Sanofi contre les maladies inflammatoires établit un nouveau record. Le groupe relève sa guidance annuelle et vise un BNPA core en hausse de 10%.',topic:'resultats',ticker:'SAN.PA',company:'Sanofi'},
-    {source:'AMF',title:'AMF — Franchissement de seuil : Amundi monte à 5% dans Edenred',description:'Le gestionnaire d\'actifs français déclare avoir franchi le seuil de 5% du capital d\'Edenred. Investissement passif via fonds indiciels.',topic:'bourse',ticker:'EDEN.PA',company:'Edenred'},
-    {source:'BFM Business',title:'Airbus : 180 appareils livrés au T1 2026, rythme record',description:'Le constructeur aéronautique européen maintient son objectif de 820 livraisons pour 2026. La montée en cadence de l\'A321 XLR se poursuit malgré les tensions supply chain.',topic:'resultats',ticker:'AIR.PA',company:'Airbus'},
-    {source:'Zonebourse',title:'Crédit Agricole : rachat d\'actions de 500M€ lancé',description:'La banque verte lance un programme de rachat d\'actions après des résultats T4 supérieurs aux attentes. Le CET1 reste solide à 17,2%, bien au-dessus des exigences réglementaires.',topic:'banque',ticker:'ACA.PA',company:'Crédit Agricole'},
-    {source:'Les Échos',title:'Hermès : liste d\'attente record pour le Birkin, pricing power intact',description:'La maison de luxe confirme des ventes en hausse de 12% au T1. La demande asiatique reprend, portée par le Japon et la Corée du Sud.',topic:'resultats',ticker:'RMS.PA',company:'Hermès'},
-    {source:'Reuters FR',title:'Engie remporte un contrat PPA de 800 MW en Allemagne',description:'Le groupe énergétique français signe un accord d\'achat d\'électricité à long terme avec un consortium industriel allemand. Livraison d\'énergie solaire à partir de 2027.',topic:'energie',ticker:'ENGI.PA',company:'Engie'},
-  ];
-
-  const now=new Date();
-  list.innerHTML=FR_STATIC.map((a,i)=>{
-    const pubDate=new Date(now.getTime()-i*25*60000).toISOString();
-    return `
-    <div class="card" style="animation-delay:${i*.04}s;border-left:3px solid #002395;cursor:default">
-      <div class="cm">
-        <span class="cs" style="color:#002395">${a.source}</span>
-        <span class="cd"></span>
-        <span class="ct">${formatPubDate(pubDate)}</span>
-        <span>🇫🇷</span>
-        ${a.ticker?`<span style="font-size:10px;font-weight:700;color:var(--gold);background:var(--gold-light);padding:1px 6px;border-radius:3px">${a.ticker}</span>`:''}
-      </div>
-      <div class="ctitle">${a.title}</div>
-      ${a.description?`<div class="cdesc">${a.description}</div>`:''}
-      <div class="ctags">
-        ${a.topic?`<span class="tag tp">${a.topic}</span>`:''}
-        ${a.company?`<span class="tag">${a.company}</span>`:''}
-      </div>
-    </div>`;
-  }).join('');
+  const srcs=[...PRESSE_BOURSE_FR,...FR_RSS_SOURCES,{url:GNS+'%22CAC+40%22+OR+%22SBF+120%22+when:2d&hl=fr&gl=FR&ceid=FR:fr',source:'Google News CAC/SBF'}];
+  const res=await runLimited(srcs,async s=>mapFeed(await fetchFeed(s.url),{source:s.source}),4);
+  const lim=Date.now()-5*864e5;
+  const items=sortByDate(dedupe(res.flat().filter(a=>{const t=new Date(a.pubDate).getTime();return isNaN(t)||t>lim;}))).slice(0,80);
+  list.innerHTML=items.length?items.map(frCard).join(''):emptyMsg('⛔ Flux France injoignables — Je ne sais pas.');
 }
 
 // ══════════════════════════════════════════════════════
-// TAB DIV — CALENDRIER DIVIDENDES
-// Données : rapports annuels 2025/2026, Euronext, AMF
-// Rendements calculés sur cours avril 2026 (indicatifs)
+// TAB DIV — DIVIDENDES (données live Yahoo Finance)
+// Cours + historique des dividendes détachés récupérés à chaque chargement.
+// Aucune date future n'est estimée : si elle n'est pas publiée → « Je ne sais pas ».
 // ══════════════════════════════════════════════════════
 const DIVIDENDS = [
-  // ── CAC 40 ────────────────────────────────────────────
-  {name:'TotalEnergies',     ticker:'TTE',  index:'CAC 40',  pays:'fr', detach:'2026-03-25', paiement:'2026-04-02', montant:0.79,  devise:'€', cours:62.5,  freq:'Trimestriel', secteur:'Énergie'},
-  {name:'TotalEnergies',     ticker:'TTE',  index:'CAC 40',  pays:'fr', detach:'2026-06-24', paiement:'2026-07-02', montant:0.79,  devise:'€', cours:62.5,  freq:'Trimestriel', secteur:'Énergie'},
-  {name:'Sanofi',            ticker:'SAN',  index:'CAC 40',  pays:'fr', detach:'2026-05-19', paiement:'2026-05-22', montant:3.92,  devise:'€', cours:98.5,  freq:'Annuel',       secteur:'Pharma'},
-  {name:'BNP Paribas',       ticker:'BNP',  index:'CAC 40',  pays:'fr', detach:'2026-05-26', paiement:'2026-05-29', montant:4.60,  devise:'€', cours:75.8,  freq:'Annuel',       secteur:'Banque'},
-  {name:'AXA',               ticker:'CS',   index:'CAC 40',  pays:'fr', detach:'2026-04-28', paiement:'2026-05-06', montant:1.98,  devise:'€', cours:34.2,  freq:'Annuel',       secteur:'Assurance'},
-  {name:'Société Générale',  ticker:'GLE',  index:'CAC 40',  pays:'fr', detach:'2026-06-02', paiement:'2026-06-05', montant:1.70,  devise:'€', cours:32.1,  freq:'Annuel',       secteur:'Banque'},
-  {name:'Crédit Agricole',   ticker:'ACA',  index:'CAC 40',  pays:'fr', detach:'2026-05-27', paiement:'2026-06-02', montant:1.05,  devise:'€', cours:14.9,  freq:'Annuel',       secteur:'Banque'},
-  {name:'Orange',            ticker:'ORA',  index:'CAC 40',  pays:'fr', detach:'2026-06-03', paiement:'2026-06-06', montant:0.70,  devise:'€', cours:10.8,  freq:'Annuel',       secteur:'Télécom'},
-  {name:'Engie',             ticker:'ENGI', index:'CAC 40',  pays:'fr', detach:'2026-05-04', paiement:'2026-05-11', montant:1.40,  devise:'€', cours:16.3,  freq:'Annuel',       secteur:'Énergie'},
-  {name:'Veolia',            ticker:'VIE',  index:'CAC 40',  pays:'fr', detach:'2026-04-22', paiement:'2026-04-29', montant:1.19,  devise:'€', cours:28.7,  freq:'Annuel',       secteur:'Utilities'},
-  {name:'Stellantis',        ticker:'STLAM',index:'CAC 40',  pays:'fr', detach:'2026-04-23', paiement:'2026-04-28', montant:0.68,  devise:'€', cours:12.4,  freq:'Annuel',       secteur:'Auto'},
-  {name:'Renault',           ticker:'RNO',  index:'CAC 40',  pays:'fr', detach:'2026-05-14', paiement:'2026-05-20', montant:1.85,  devise:'€', cours:48.6,  freq:'Annuel',       secteur:'Auto'},
-  {name:'LVMH',              ticker:'MC',   index:'CAC 40',  pays:'fr', detach:'2026-04-16', paiement:'2026-04-22', montant:6.00,  devise:'€', cours:618.0, freq:'Intermédiaire',secteur:'Luxe'},
-  {name:'Hermès',            ticker:'RMS',  index:'CAC 40',  pays:'fr', detach:'2026-05-05', paiement:'2026-05-08', montant:15.00, devise:'€', cours:2180.0,freq:'Annuel',       secteur:'Luxe'},
-  {name:'Kering',            ticker:'KER',  index:'CAC 40',  pays:'fr', detach:'2026-04-28', paiement:'2026-05-05', montant:6.00,  devise:'€', cours:228.0, freq:'Annuel',       secteur:'Luxe'},
-  {name:'L\'Oréal',          ticker:'OR',   index:'CAC 40',  pays:'fr', detach:'2026-04-29', paiement:'2026-05-06', montant:6.60,  devise:'€', cours:342.0, freq:'Annuel',       secteur:'Cosm.'},
-  {name:'Air Liquide',       ticker:'AI',   index:'CAC 40',  pays:'fr', detach:'2026-05-19', paiement:'2026-05-26', montant:3.20,  devise:'€', cours:168.0, freq:'Annuel',       secteur:'Chimie'},
-  {name:'Saint-Gobain',      ticker:'SGO',  index:'CAC 40',  pays:'fr', detach:'2026-06-09', paiement:'2026-06-12', montant:2.00,  devise:'€', cours:74.5,  freq:'Annuel',       secteur:'Matériaux'},
-  {name:'Schneider Electric',ticker:'SU',   index:'CAC 40',  pays:'fr', detach:'2026-05-12', paiement:'2026-05-15', montant:3.65,  devise:'€', cours:218.0, freq:'Annuel',       secteur:'Industrie'},
-  {name:'Legrand',           ticker:'LR',   index:'CAC 40',  pays:'fr', detach:'2026-05-27', paiement:'2026-06-03', montant:1.96,  devise:'€', cours:88.4,  freq:'Annuel',       secteur:'Industrie'},
-  {name:'Michelin',          ticker:'ML',   index:'CAC 40',  pays:'fr', detach:'2026-05-08', paiement:'2026-05-14', montant:1.35,  devise:'€', cours:34.2,  freq:'Annuel',       secteur:'Auto'},
-  {name:'Airbus',            ticker:'AIR',  index:'CAC 40',  pays:'fr', detach:'2026-04-16', paiement:'2026-04-21', montant:1.80,  devise:'€', cours:168.0, freq:'Annuel',       secteur:'Aéro'},
-  {name:'Safran',            ticker:'SAF',  index:'CAC 40',  pays:'fr', detach:'2026-06-02', paiement:'2026-06-05', montant:1.40,  devise:'€', cours:198.0, freq:'Annuel',       secteur:'Aéro'},
-  {name:'Capgemini',         ticker:'CAP',  index:'CAC 40',  pays:'fr', detach:'2026-05-19', paiement:'2026-05-26', montant:3.50,  devise:'€', cours:154.0, freq:'Annuel',       secteur:'Tech'},
-  {name:'Dassault Systèmes', ticker:'DSY',  index:'CAC 40',  pays:'fr', detach:'2026-06-16', paiement:'2026-06-19', montant:0.23,  devise:'€', cours:32.8,  freq:'Annuel',       secteur:'Tech'},
-  {name:'Pernod Ricard',     ticker:'RI',   index:'CAC 40',  pays:'fr', detach:'2026-11-17', paiement:'2026-11-24', montant:2.26,  devise:'€', cours:88.0,  freq:'Intermédiaire',secteur:'Alcool'},
-  {name:'Publicis',          ticker:'PUB',  index:'CAC 40',  pays:'fr', detach:'2026-06-30', paiement:'2026-07-07', montant:3.40,  devise:'€', cours:92.5,  freq:'Annuel',       secteur:'Média'},
-  {name:'Danone',            ticker:'BN',   index:'CAC 40',  pays:'fr', detach:'2026-04-30', paiement:'2026-05-06', montant:1.94,  devise:'€', cours:58.4,  freq:'Annuel',       secteur:'Alim.'},
-  {name:'Carrefour',         ticker:'CA',   index:'CAC 40',  pays:'fr', detach:'2026-05-19', paiement:'2026-05-26', montant:0.87,  devise:'€', cours:18.2,  freq:'Annuel',       secteur:'Distrib.'},
-  {name:'Vivendi',           ticker:'VIV',  index:'CAC 40',  pays:'fr', detach:'2026-06-18', paiement:'2026-06-23', montant:0.25,  devise:'€', cours:10.1,  freq:'Annuel',       secteur:'Média'},
-  // ── SBF 120 (hors CAC 40) ────────────────────────────
-  {name:'Edenred',           ticker:'EDEN', index:'SBF 120', pays:'fr', detach:'2026-05-20', paiement:'2026-05-27', montant:1.01,  devise:'€', cours:28.6,  freq:'Annuel',       secteur:'Fintech'},
-  {name:'Rexel',             ticker:'RXL',  index:'SBF 120', pays:'fr', detach:'2026-05-13', paiement:'2026-05-20', montant:1.00,  devise:'€', cours:21.4,  freq:'Annuel',       secteur:'Distrib.'},
-  {name:'Ipsen',             ticker:'IPN',  index:'SBF 120', pays:'fr', detach:'2026-06-09', paiement:'2026-06-12', montant:1.30,  devise:'€', cours:118.0, freq:'Annuel',       secteur:'Pharma'},
-  {name:'Coface',            ticker:'COFA', index:'SBF 120', pays:'fr', detach:'2026-05-20', paiement:'2026-05-27', montant:1.13,  devise:'€', cours:12.8,  freq:'Annuel',       secteur:'Assurance'},
-  {name:'Nexans',            ticker:'NEX',  index:'SBF 120', pays:'fr', detach:'2026-05-27', paiement:'2026-06-03', montant:1.40,  devise:'€', cours:98.0,  freq:'Annuel',       secteur:'Industrie'},
-  {name:'Vallourec',         ticker:'VK',   index:'SBF 120', pays:'fr', detach:'2026-06-04', paiement:'2026-06-09', montant:0.50,  devise:'€', cours:14.2,  freq:'Annuel',       secteur:'Énergie'},
-  {name:'Soitec',            ticker:'SOI',  index:'SBF 120', pays:'fr', detach:'2026-07-14', paiement:'2026-07-17', montant:1.20,  devise:'€', cours:112.0, freq:'Annuel',       secteur:'Semi-cond.'},
-  {name:'Faurecia (Forvia)', ticker:'FRVIA',index:'SBF 120', pays:'fr', detach:'2026-06-11', paiement:'2026-06-16', montant:0.50,  devise:'€', cours:7.8,   freq:'Annuel',       secteur:'Auto'},
-  {name:'Rubis',             ticker:'RUI',  index:'SBF 120', pays:'fr', detach:'2026-06-25', paiement:'2026-07-02', montant:2.02,  devise:'€', cours:27.5,  freq:'Annuel',       secteur:'Énergie'},
-  {name:'Mercialys',         ticker:'MERY', index:'SBF 120', pays:'fr', detach:'2026-05-06', paiement:'2026-05-13', montant:0.96,  devise:'€', cours:9.8,   freq:'Annuel',       secteur:'Immo'},
-  {name:'Eurazeo',           ticker:'RF',   index:'SBF 120', pays:'fr', detach:'2026-05-19', paiement:'2026-05-26', montant:2.50,  devise:'€', cours:68.2,  freq:'Annuel',       secteur:'Private Eq.'},
-  {name:'Scor',              ticker:'SCR',  index:'SBF 120', pays:'fr', detach:'2026-06-03', paiement:'2026-06-06', montant:1.80,  devise:'€', cours:28.4,  freq:'Annuel',       secteur:'Réassurance'},
-  // ── Grandes valeurs européennes ───────────────────────
-  {name:'ASML',              ticker:'ASML', index:'AEX',     pays:'eu', detach:'2026-04-29', paiement:'2026-05-09', montant:1.52,  devise:'€', cours:648.0, freq:'Trimestriel',  secteur:'Semi-cond.'},
-  {name:'Novo Nordisk',      ticker:'NOVO', index:'OMX',     pays:'eu', detach:'2026-03-21', paiement:'2026-03-26', montant:4.63,  devise:'DKK',cours:620.0, freq:'Annuel',      secteur:'Pharma'},
-  {name:'SAP',               ticker:'SAP',  index:'DAX',     pays:'eu', detach:'2026-05-20', paiement:'2026-05-27', montant:2.20,  devise:'€', cours:218.0, freq:'Annuel',       secteur:'Tech'},
-  {name:'Siemens',           ticker:'SIE',  index:'DAX',     pays:'eu', detach:'2026-02-05', paiement:'2026-02-10', montant:5.20,  devise:'€', cours:198.0, freq:'Annuel',       secteur:'Industrie'},
-  {name:'Allianz',           ticker:'ALV',  index:'DAX',     pays:'eu', detach:'2026-05-08', paiement:'2026-05-12', montant:15.40, devise:'€', cours:318.0, freq:'Annuel',       secteur:'Assurance'},
-  {name:'Deutsche Telekom',  ticker:'DTE',  index:'DAX',     pays:'eu', detach:'2026-05-12', paiement:'2026-05-16', montant:0.90,  devise:'€', cours:29.8,  freq:'Annuel',       secteur:'Télécom'},
-  {name:'UniCredit',         ticker:'UCG',  index:'MIB',     pays:'eu', detach:'2026-04-22', paiement:'2026-04-25', montant:2.55,  devise:'€', cours:42.8,  freq:'Annuel',       secteur:'Banque'},
-  {name:'Nestlé',            ticker:'NESN', index:'SMI',     pays:'eu', detach:'2026-04-02', paiement:'2026-04-09', montant:3.05,  devise:'CHF',cours:78.5,  freq:'Annuel',      secteur:'Alim.'},
-  {name:'Novartis',          ticker:'NOVN', index:'SMI',     pays:'eu', detach:'2026-03-06', paiement:'2026-03-12', montant:3.50,  devise:'CHF',cours:92.0,  freq:'Annuel',      secteur:'Pharma'},
-  {name:'ABB',               ticker:'ABBN', index:'SMI',     pays:'eu', detach:'2026-03-27', paiement:'2026-04-03', montant:0.90,  devise:'CHF',cours:48.2,  freq:'Annuel',      secteur:'Industrie'},
-  {name:'Iberdrola',         ticker:'IBE',  index:'IBEX',    pays:'eu', detach:'2026-04-07', paiement:'2026-04-10', montant:0.60,  devise:'€', cours:13.8,  freq:'Trimestriel',  secteur:'Énergie'},
-  {name:'Santander',         ticker:'SAN',  index:'IBEX',    pays:'eu', detach:'2026-04-29', paiement:'2026-05-06', montant:0.20,  devise:'€', cours:5.2,   freq:'Trimestriel',  secteur:'Banque'},
-];
+  // ── CAC 40 ──
+  ['TotalEnergies','TTE.PA','CAC 40','fr','Énergie'],['Sanofi','SAN.PA','CAC 40','fr','Pharma'],['BNP Paribas','BNP.PA','CAC 40','fr','Banque'],
+  ['AXA','CS.PA','CAC 40','fr','Assurance'],['Société Générale','GLE.PA','CAC 40','fr','Banque'],['Crédit Agricole','ACA.PA','CAC 40','fr','Banque'],
+  ['Orange','ORA.PA','CAC 40','fr','Télécom'],['Engie','ENGI.PA','CAC 40','fr','Énergie'],['Veolia','VIE.PA','CAC 40','fr','Utilities'],
+  ['Stellantis','STLAP.PA','CAC 40','fr','Auto'],['Renault','RNO.PA','CAC 40','fr','Auto'],['LVMH','MC.PA','CAC 40','fr','Luxe'],
+  ['Hermès','RMS.PA','CAC 40','fr','Luxe'],['Kering','KER.PA','CAC 40','fr','Luxe'],["L'Oréal",'OR.PA','CAC 40','fr','Cosm.'],
+  ['Air Liquide','AI.PA','CAC 40','fr','Chimie'],['Saint-Gobain','SGO.PA','CAC 40','fr','Matériaux'],['Schneider Electric','SU.PA','CAC 40','fr','Industrie'],
+  ['Legrand','LR.PA','CAC 40','fr','Industrie'],['Michelin','ML.PA','CAC 40','fr','Auto'],['Airbus','AIR.PA','CAC 40','fr','Aéro'],
+  ['Safran','SAF.PA','CAC 40','fr','Aéro'],['Capgemini','CAP.PA','CAC 40','fr','Tech'],['Dassault Systèmes','DSY.PA','CAC 40','fr','Tech'],
+  ['Pernod Ricard','RI.PA','CAC 40','fr','Alcool'],['Publicis','PUB.PA','CAC 40','fr','Média'],['Danone','BN.PA','CAC 40','fr','Alim.'],
+  ['Carrefour','CA.PA','CAC 40','fr','Distrib.'],['Vivendi','VIV.PA','SBF 120','fr','Média'],
+  // ── SBF 120 ──
+  ['Edenred','EDEN.PA','SBF 120','fr','Fintech'],['Rexel','RXL.PA','SBF 120','fr','Distrib.'],['Ipsen','IPN.PA','SBF 120','fr','Pharma'],
+  ['Coface','COFA.PA','SBF 120','fr','Assurance'],['Nexans','NEX.PA','SBF 120','fr','Industrie'],['Vallourec','VK.PA','SBF 120','fr','Énergie'],
+  ['Soitec','SOI.PA','SBF 120','fr','Semi-cond.'],['Forvia','FRVIA.PA','SBF 120','fr','Auto'],['Rubis','RUI.PA','SBF 120','fr','Énergie'],
+  ['Mercialys','MERY.PA','SBF 120','fr','Immo'],['Eurazeo','RF.PA','SBF 120','fr','Private Eq.'],['Scor','SCR.PA','SBF 120','fr','Réassurance'],
+  // ── Europe ──
+  ['ASML','ASML.AS','AEX','eu','Semi-cond.'],['Novo Nordisk','NOVO-B.CO','OMX C25','eu','Pharma'],['SAP','SAP.DE','DAX','eu','Tech'],
+  ['Siemens','SIE.DE','DAX','eu','Industrie'],['Allianz','ALV.DE','DAX','eu','Assurance'],['Deutsche Telekom','DTE.DE','DAX','eu','Télécom'],
+  ['UniCredit','UCG.MI','FTSE MIB','eu','Banque'],['Nestlé','NESN.SW','SMI','eu','Alim.'],['Novartis','NOVN.SW','SMI','eu','Pharma'],
+  ['ABB','ABBN.SW','SMI','eu','Industrie'],['Iberdrola','IBE.MC','IBEX','eu','Énergie'],['Santander','SAN.MC','IBEX','eu','Banque'],
+].map(([name,ticker,index,pays,secteur])=>({name,ticker,index,pays,secteur}));
 
-let divFilter='all';
+const DIV_CACHE_KEY='div_cache_v1', DIV_TTL=6*3600*1000;
+let divFilter='all', divData=null, divLoading=false, divStamp=null;
 
 function rendementColor(r){
-  if(r>=6)return '#e53935';
-  if(r>=4)return '#f59e0b';
-  if(r>=2)return '#10b981';
-  return 'var(--muted)';
+  if(r==null)return 'var(--muted)';
+  if(r>=6)return '#e53935'; if(r>=4)return '#f59e0b'; if(r>=2)return '#10b981'; return 'var(--muted)';
+}
+function daysSince(ts){return Math.floor((Date.now()-ts)/864e5);}
+
+async function fetchYahoo(d){
+  const url=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(d.ticker)}?range=2y&interval=1mo&events=div`;
+  const txt=await fetchTextViaProxies(url);
+  if(!txt)return {...d,ok:false};
+  try{
+    const r=JSON.parse(txt)?.chart?.result?.[0]; if(!r)return {...d,ok:false};
+    const m=r.meta||{};
+    const divs=Object.values(r.events?.dividends||{}).map(x=>({amount:x.amount,date:x.date*1000})).sort((a,b)=>b.date-a.date);
+    const yearAgo=Date.now()-365*864e5;
+    const ttmList=divs.filter(x=>x.date>=yearAgo);
+    const ttm=ttmList.reduce((s,x)=>s+x.amount,0);
+    const price=m.regularMarketPrice;
+    let cur=m.currency||''; let px=price, amt=ttm, last=divs[0]||null;
+    if(cur==='GBp'){px=price/100;amt=ttm/100;cur='GBP';}
+    return {...d,ok:true,price:px,priceTime:(m.regularMarketTime||0)*1000,currency:cur,
+      last, lastAmount:last?last.amount:null, ttm:amt, nbTTM:ttmList.length,
+      rendement:(px&&amt)?amt/px*100:null};
+  }catch(e){return {...d,ok:false};}
 }
 
-function daysUntil(dateStr){
-  const d=new Date(dateStr);
-  const today=new Date();today.setHours(0,0,0,0);
-  return Math.round((d-today)/(1000*60*60*24));
-}
-
-function urgenceBadge(days){
-  if(days<0)return `<span style="font-size:10px;color:var(--muted)">Passé</span>`;
-  if(days===0)return `<span style="font-size:10px;color:#e53935;font-weight:700">⚡ Aujourd'hui</span>`;
-  if(days<=7)return `<span style="font-size:10px;color:#e53935;font-weight:600">🔥 J-${days}</span>`;
-  if(days<=30)return `<span style="font-size:10px;color:#f59e0b;font-weight:600">⚡ J-${days}</span>`;
-  return `<span style="font-size:10px;color:var(--muted)">J-${days}</span>`;
+async function loadDividends(force){
+  if(divLoading)return;
+  if(!force&&!divData){
+    try{const c=JSON.parse(localStorage.getItem(DIV_CACHE_KEY)||'null');
+      if(c&&Date.now()-c.ts<DIV_TTL){divData=c.items;divStamp=c.ts;renderDividends();return;}}catch(e){}
+  }
+  divLoading=true;
+  document.getElementById('divList').innerHTML=`<div class="loader"><div class="sp"></div><div>Récupération des cours et dividendes (Yahoo Finance)…</div></div>`;
+  const res=await runLimited(DIVIDENDS,fetchYahoo,4);
+  divLoading=false;
+  const okN=res.filter(x=>x.ok).length;
+  if(!okN){
+    try{const c=JSON.parse(localStorage.getItem(DIV_CACHE_KEY)||'null');if(c){divData=c.items;divStamp=c.ts;renderDividends('⚠️ Yahoo Finance injoignable — affichage du dernier chargement réussi.');return;}}catch(e){}
+    divData=res;divStamp=null;renderDividends('⛔ Yahoo Finance injoignable et aucun cache — Je ne sais pas.');return;
+  }
+  divData=res;divStamp=Date.now();
+  try{localStorage.setItem(DIV_CACHE_KEY,JSON.stringify({ts:divStamp,items:res}));}catch(e){}
+  renderDividends();
 }
 
 function filterDiv(f){
@@ -1597,84 +1459,130 @@ function filterDiv(f){
   renderDividends();
 }
 
-function renderDividends(){
-  const today=new Date();today.setHours(0,0,0,0);
-  let data=DIVIDENDS.map(d=>({...d,days:daysUntil(d.detach),rendement:((d.montant/d.cours)*100)}));
-
-  // Filtre
-  if(divFilter==='imminent') data=data.filter(d=>d.days>=0&&d.days<=30);
+function renderDividends(warn){
+  if(!divData){loadDividends();return;}
+  const all=divData;
+  let data=all.slice();
+  if(divFilter==='imminent') data=data.filter(d=>d.last&&daysSince(d.last.date)<=30);
   else if(divFilter==='fr') data=data.filter(d=>d.pays==='fr');
   else if(divFilter==='eu') data=data.filter(d=>d.pays==='eu');
   else if(divFilter==='high') data=data.filter(d=>d.rendement>=4);
+  data.sort((a,b)=>(b.last?.date||0)-(a.last?.date||0));
 
-  // Tri par date de détachement
-  data.sort((a,b)=>new Date(a.detach)-new Date(b.detach));
-
-  // Stats
-  const all=DIVIDENDS.map(d=>({...d,days:daysUntil(d.detach),rendement:((d.montant/d.cours)*100)}));
-  document.getElementById('divCntTotal').textContent=DIVIDENDS.length;
-  document.getElementById('divCntImminent').textContent=all.filter(d=>d.days>=0&&d.days<=30).length;
+  document.getElementById('divCntTotal').textContent=all.filter(d=>d.ok).length+'/'+all.length;
+  document.getElementById('divCntImminent').textContent=all.filter(d=>d.last&&daysSince(d.last.date)<=30).length;
   document.getElementById('divCntHigh').textContent=all.filter(d=>d.rendement>=4).length;
 
-  if(!data.length){
-    document.getElementById('divList').innerHTML=`<div class="loader" style="color:var(--muted)">Aucun dividende pour ce filtre</div>`;
-    return;
-  }
+  const stamp=divStamp?new Date(divStamp):null;
+  let html=`<div style="font-size:11px;padding:8px 10px;margin-bottom:8px;border-radius:6px;background:${warn?'var(--red-bg)':'var(--blue-bg)'}">
+    ${warn?warn+'<br>':''}Source : Yahoo Finance (cours + dividendes détachés)${stamp?` · récupéré le <b>${stamp.toLocaleDateString('fr-FR')} à ${stamp.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</b>`:''}
+    · <a href="#" onclick="divData=null;loadDividends(true);return false">↻ Actualiser</a></div>`;
+  if(!data.length){document.getElementById('divList').innerHTML=html+`<div class="loader" style="color:var(--muted)">Aucune société pour ce filtre</div>`;return;}
 
-  // Grouper par mois
   const byMonth={};
   data.forEach(d=>{
-    const dt=new Date(d.detach);
-    const key=dt.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
-    if(!byMonth[key])byMonth[key]=[];
-    byMonth[key].push(d);
+    const key=d.last?new Date(d.last.date).toLocaleDateString('fr-FR',{month:'long',year:'numeric'}):'Aucun dividende sur 2 ans / donnée indisponible';
+    (byMonth[key]=byMonth[key]||[]).push(d);
   });
-
-  let html='';
   for(const [mois,items] of Object.entries(byMonth)){
-    html+=`<div style="font-family:'Playfair Display',serif;font-size:13px;font-weight:700;font-style:italic;color:var(--text);margin:14px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border)">${mois.charAt(0).toUpperCase()+mois.slice(1)}</div>`;
+    html+=`<div style="font-family:'Playfair Display',serif;font-size:13px;font-weight:700;font-style:italic;color:var(--text);margin:14px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border)">Dernier détachement : ${mois.charAt(0).toUpperCase()+mois.slice(1)}</div>`;
     items.forEach(d=>{
-      const rdt=d.rendement.toFixed(2);
       const rdtColor=rendementColor(d.rendement);
-      const paieDt=new Date(d.paiement).toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
-      const detachDt=new Date(d.detach).toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
-      const isPast=d.days<0;
+      const f=(v,n=2)=>v==null?'—':v.toLocaleString('fr-FR',{minimumFractionDigits:n,maximumFractionDigits:n});
+      const lastDt=d.last?new Date(d.last.date).toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'}):'—';
+      const ago=d.last?daysSince(d.last.date):null;
       html+=`
-      <div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid ${rdtColor};border-radius:6px;padding:12px;margin-bottom:8px;${isPast?'opacity:.55':''}">
+      <div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid ${rdtColor};border-radius:6px;padding:12px;margin-bottom:8px;${d.ok?'':'opacity:.55'}">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
           <div>
-            <div style="font-weight:700;font-size:13px;color:var(--text)">${d.name}
-              <span style="font-size:10px;color:var(--muted);font-weight:400"> ${d.ticker}</span>
-            </div>
-            <div style="font-size:10px;color:var(--muted);margin-top:2px">${d.index} · ${d.secteur} · ${d.freq}</div>
+            <div style="font-weight:700;font-size:13px;color:var(--text)">${d.name}<span style="font-size:10px;color:var(--muted);font-weight:400"> ${d.ticker}</span></div>
+            <div style="font-size:10px;color:var(--muted);margin-top:2px">${d.index} · ${d.secteur}${d.ok?` · ${d.nbTTM} versement(s) sur 12 mois`:''}</div>
           </div>
           <div style="text-align:right;flex-shrink:0">
-            <div style="font-size:18px;font-weight:700;color:${rdtColor}">${rdt}%</div>
-            <div style="font-size:10px;color:var(--muted)">rendement</div>
+            <div style="font-size:18px;font-weight:700;color:${rdtColor}">${d.rendement==null?'—':f(d.rendement)+'%'}</div>
+            <div style="font-size:10px;color:var(--muted)">rdt 12 mois glissants</div>
           </div>
         </div>
+        ${d.ok?`
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px">
-          <div style="background:var(--bg);border-radius:4px;padding:6px;text-align:center">
-            <div style="font-size:12px;font-weight:700;color:var(--text)">${d.montant.toFixed(2)} ${d.devise}</div>
-            <div style="font-size:10px;color:var(--muted)">Montant</div>
-          </div>
-          <div style="background:var(--bg);border-radius:4px;padding:6px;text-align:center">
-            <div style="font-size:12px;font-weight:700;color:var(--text)">${detachDt}</div>
-            <div style="font-size:10px;color:var(--muted)">Détachement</div>
-          </div>
-          <div style="background:var(--bg);border-radius:4px;padding:6px;text-align:center">
-            <div style="font-size:12px;font-weight:700;color:var(--text)">${paieDt}</div>
-            <div style="font-size:10px;color:var(--muted)">Paiement</div>
-          </div>
+          <div style="background:var(--bg);border-radius:4px;padding:6px;text-align:center"><div style="font-size:12px;font-weight:700">${f(d.lastAmount,3)} ${d.currency}</div><div style="font-size:10px;color:var(--muted)">Dernier montant</div></div>
+          <div style="background:var(--bg);border-radius:4px;padding:6px;text-align:center"><div style="font-size:12px;font-weight:700">${lastDt}</div><div style="font-size:10px;color:var(--muted)">Dernier détachement</div></div>
+          <div style="background:var(--bg);border-radius:4px;padding:6px;text-align:center"><div style="font-size:12px;font-weight:700">${f(d.ttm,3)} ${d.currency}</div><div style="font-size:10px;color:var(--muted)">Total 12 mois</div></div>
         </div>
-        <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center">
-          <div style="font-size:10px;color:var(--muted)">Cours réf. : ${d.cours.toFixed(2)} ${d.devise}</div>
-          ${urgenceBadge(d.days)}
-        </div>
+        <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--muted)">
+          <div>Cours : ${f(d.price)} ${d.currency}${d.priceTime?` (${new Date(d.priceTime).toLocaleDateString('fr-FR')})`:''}</div>
+          <div>Prochain détachement : Je ne sais pas${ago!=null&&ago<=30?` · <span style="color:#f59e0b;font-weight:600">détaché il y a ${ago} j</span>`:''}</div>
+        </div>`:`<div style="font-size:11px;color:var(--muted);margin-top:8px">Données indisponibles — Je ne sais pas.</div>`}
       </div>`;
     });
   }
   document.getElementById('divList').innerHTML=html;
+}
+
+
+// ══════════════════════════════════════════════════════
+// TAB MES VALEURS — liste modifiable ici
+// ══════════════════════════════════════════════════════
+const MES_VALEURS=[
+  {name:'TotalEnergies',      ticker:'TTE.PA',  q:'"TotalEnergies"'},
+  {name:'Coface',             ticker:'COFA.PA', q:'"Coface"'},
+  {name:'BNP Paribas',        ticker:'BNP.PA',  q:'"BNP Paribas"'},
+  {name:'ENGIE',              ticker:'ENGI.PA', q:'"Engie"'},
+  {name:'M6',                 ticker:'MMT.PA',  q:'"Groupe M6" OR "M6 Métropole" OR "Métropole Télévision"'},
+  {name:'EssilorLuxottica',   ticker:'EL.PA',   q:'"EssilorLuxottica"'},
+  {name:'Teleperformance',    ticker:'TEP.PA',  q:'"Teleperformance"'},
+  {name:'Compagnie des Alpes',ticker:'CDA.PA',  q:'"Compagnie des Alpes"'},
+];
+let mesNews=[], mesSel='all', mesLoading=false;
+
+async function fetchQuote(v){
+  const txt=await fetchTextViaProxies(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(v.ticker)}?range=5d&interval=1d`);
+  try{
+    const m=JSON.parse(txt)?.chart?.result?.[0]?.meta; if(!m||m.regularMarketPrice==null)return {...v,ok:false};
+    const prev=m.chartPreviousClose??m.previousClose;
+    return {...v,ok:true,price:m.regularMarketPrice,cur:m.currency||'EUR',time:(m.regularMarketTime||0)*1000,
+      chg:prev?(m.regularMarketPrice/prev-1)*100:null};
+  }catch(e){return {...v,ok:false};}
+}
+
+function renderMesQuotes(qs){
+  const f=(v,n=2)=>v.toLocaleString('fr-FR',{minimumFractionDigits:n,maximumFractionDigits:n});
+  document.getElementById('mesQuotes').innerHTML=qs.map(q=>{
+    const col=q.chg==null?'var(--muted)':(q.chg>=0?'var(--green)':'var(--red)');
+    return `<div onclick="mesPick('${q.name.replace(/'/g,"\\'")}')" style="cursor:pointer;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:9px">
+      <div style="font-weight:700;font-size:12px">${q.name} <span style="font-size:10px;color:var(--muted);font-weight:400">${q.ticker.replace('.PA','')}</span></div>
+      ${q.ok?`<div style="font-size:16px;font-weight:700;margin-top:2px">${f(q.price)} ${q.cur==='EUR'?'€':q.cur}</div>
+      <div style="font-size:11px;font-weight:600;color:${col}">${q.chg==null?'—':(q.chg>=0?'▲ +':'▼ ')+f(q.chg)+' %'}</div>
+      <div style="font-size:9px;color:var(--muted)">${new Date(q.time).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})} · Yahoo</div>`
+      :`<div style="font-size:11px;color:var(--muted);margin-top:4px">Cours : Je ne sais pas</div>`}
+    </div>`;}).join('');
+}
+
+function mesPick(n){mesSel=n;renderMesNews();}
+function renderMesNews(){
+  const counts={}; mesNews.forEach(a=>counts[a.valeur]=(counts[a.valeur]||0)+1);
+  document.getElementById('mesFilter').innerHTML=[['all','Toutes'],...MES_VALEURS.map(v=>[v.name,v.name])]
+    .map(([k,l])=>`<button class="pill${mesSel===k?' active':''}" onclick="mesPick('${k.replace(/'/g,"\\'")}')">${l}${k==='all'?'':` (${counts[k]||0})`}</button>`).join('');
+  const items=mesNews.filter(a=>mesSel==='all'||a.valeur===mesSel);
+  document.getElementById('mesList').innerHTML=items.length?items.map((a,i)=>`
+    <a class="card" href="${a.link}" target="_blank" rel="noopener" style="animation-delay:${i*.02}s;border-left:3px solid var(--gold)">
+      <div class="cm"><span class="cs" style="color:var(--gold)">${a.valeur}</span><span class="cd"></span>
+        <span class="ct">${formatPubDate(a.pubDate)}</span>${isFresh(a.pubDate)?'<span class="tag new">🔥</span>':''}</div>
+      <div class="ctitle">${a.title}</div>
+      ${a.description?`<div class="cdesc">${a.description}</div>`:''}
+    </a>`).join(''):emptyMsg(mesNews.length?'Aucun article sur 7 jours pour cette valeur.':'⛔ Aucune source joignable — Je ne sais pas.');
+}
+
+async function loadMesValeurs(){
+  if(mesLoading)return; mesLoading=true; spin('rbtnMes',true);
+  const [qs,res]=await Promise.all([
+    runLimited(MES_VALEURS,fetchQuote,4),
+    runLimited(MES_VALEURS,async v=>mapFeed(await fetchFeed(GNS+encodeURIComponent(v.q+' when:7d')+'&hl=fr&gl=FR&ceid=FR:fr'),{valeur:v.name,source:v.name}),4),
+  ]);
+  renderMesQuotes(qs);
+  mesNews=sortByDate(dedupe(res.flat()));
+  renderMesNews();
+  spin('rbtnMes',false); mesLoading=false;
 }
 
 // ── Tab switching ─────────────────────────────────────
@@ -1683,15 +1591,16 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
   document.querySelectorAll('.tab-content').forEach(x=>x.classList.remove('active'));
   t.classList.add('active');
   document.getElementById('tab-'+t.dataset.tab).classList.add('active');
-  const idx=['news','reg','opa','fr','div','ai','search'].indexOf(t.dataset.tab);
+  const idx=['news','mes','reg','opa','fr','div','ai','search'].indexOf(t.dataset.tab);
   document.querySelectorAll('.ni').forEach((n,i)=>n.classList.toggle('active',i===idx));
   if(t.dataset.tab==='search')document.getElementById('searchInput').focus();
   if(t.dataset.tab==='ai'){renderAITable();loadAINews();}
   if(t.dataset.tab==='fr'){renderFRCalendar();loadFRNews();}
   if(t.dataset.tab==='div')renderDividends();
+  if(t.dataset.tab==='mes'&&!mesNews.length)loadMesValeurs();
 }));
 document.querySelectorAll('.ni').forEach((n,i)=>n.addEventListener('click',()=>{
-  const tabs=['news','reg','opa','fr','div','ai','search'];
+  const tabs=['news','mes','reg','opa','fr','div','ai','search'];
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.ni').forEach(x=>x.classList.remove('active'));
@@ -1703,6 +1612,7 @@ document.querySelectorAll('.ni').forEach((n,i)=>n.addEventListener('click',()=>{
   if(tabs[i]==='ai'){renderAITable();loadAINews();}
   if(tabs[i]==='fr'){renderFRCalendar();loadFRNews();}
   if(tabs[i]==='div')renderDividends();
+  if(tabs[i]==='mes'&&!mesNews.length)loadMesValeurs();
 }));
 
 // ── Init ──────────────────────────────────────────────
@@ -1715,6 +1625,7 @@ setInterval(loadOPA,20*60*1000);
 setInterval(()=>{
   if(document.querySelector('.tab[data-tab="ai"]')?.classList.contains('active'))loadAINews();
   if(document.querySelector('.tab[data-tab="fr"]')?.classList.contains('active'))loadFRNews();
+  if(document.querySelector('.tab[data-tab="mes"]')?.classList.contains('active'))loadMesValeurs();
 },15*60*1000);
 </script>
 </body>
