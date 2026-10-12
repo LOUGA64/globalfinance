@@ -46,7 +46,7 @@ export function parseRSS(xml) {
 
 // ── 3. Téléchargement avec limite de concurrence par hôte ──
 const hostQueues = new Map();
-const HOST_LIMIT = { 'news.google.com': 3, 'query1.finance.yahoo.com': 3, 'query2.finance.yahoo.com': 3, 'www.google.com': 3, 'www.sec.gov': 2 };
+const HOST_LIMIT = { 'www.boursorama.com': 3, 'news.google.com': 3, 'query1.finance.yahoo.com': 3, 'query2.finance.yahoo.com': 3, 'www.google.com': 3, 'www.sec.gov': 2 };
 async function withHost(url, fn) {
   const h = new URL(url).hostname, lim = HOST_LIMIT[h] || 6;
   let q = hostQueues.get(h); if (!q) { q = { n: 0, w: [] }; hostQueues.set(h, q); }
@@ -199,29 +199,35 @@ async function fetchBourso(t) {
 }
 
 
-// ── DIAGNOSTIC TEMPORAIRE : sources de dividendes (détachements passés) ──
-async function divDiag() {
-  const out = [];
-  const P = [
-    ['bourso-cours', 'https://www.boursorama.com/cours/1rPCOFA/'],
-    ['bourso-societe', 'https://www.boursorama.com/cours/societe/chiffres-cles/1rPCOFA/'],
-    ['bourso-profil', 'https://www.boursorama.com/cours/societe/profil/1rPCOFA/'],
-    ['zb-search', 'https://www.zonebourse.com/recherche/?q=FR0010667147'],
-    ['zb-agenda-bnp', 'https://www.zonebourse.com/cours/action/BNP-PARIBAS-SA-4618/agenda/'],
-    ['divaltis', 'https://divaltis.com/euronext-paris/dividendes-coface/'],
-    ['investir', 'https://investir.lesechos.fr/cours/action-coface,xpar,cofa,fr0010667147,isin.html'],
-  ];
-  for (const [name, url] of P) {
+// ── Boursorama (page publique de chaque valeur de Paris) : dernier dividende + date, rendement estimé ──
+// Page lourde (~1 Mo) : rafraîchie au plus toutes les 6 h par valeur, sinon reprise du résultat précédent.
+export function parseBoursoDiv(html) {
+  const txt = html.replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;|&#160;|&#xa0;/gi, ' ').replace(/&#0?39;|&apos;/g, "'").replace(/\s+/g, ' ');
+  const out = {};
+  const d = txt.match(/dernier dividende.{0,160}?(\d[\d ]*,\d+)\s*(EUR|USD|GBX|GBP|NOK|CHF)\s*\((\d{2})\/(\d{2})\/(\d{2})\)/i);
+  if (d) { out.lastAmount = parseFloat(d[1].replace(/ /g, '').replace(',', '.')); out.lastCurrency = d[2]; out.lastDate = `20${d[5]}-${d[4]}-${d[3]}`; }
+  const r = txt.match(/rendement estimé (\d{4})\s*(-?\d+,\d+)\s*%/i);
+  if (r) { out.estYear = +r[1]; out.estYield = parseFloat(r[2].replace(',', '.')); }
+  const f = txt.match(/Dividende par action\s+(\d[\d ]*,\d+|-)\s*(?:EUR)?\s+(\d[\d ]*,\d+|-)\s*(?:EUR)?\s+(\d[\d ]*,\d+|-)/i);
+  if (f) out.dpsFactSet = f.slice(1, 4).map(x => x === '-' ? null : parseFloat(x.replace(/ /g, '').replace(',', '.')));
+  return Object.keys(out).length ? out : null;
+}
+async function fetchBoursoDivs(tickers, prev) {
+  const res = {}, stat = { fresh: 0, reused: 0, fail: 0 };
+  const now = Date.now();
+  await Promise.all(tickers.filter(t => t.endsWith('.PA')).map(async t => {
+    const old = prev?.[t];
+    if (old && now - old.ts < 6 * 3600e3) { res[t] = old; stat.reused++; return; }
+    const u = `https://www.boursorama.com/cours/1rP${encodeURIComponent(t.slice(0, -3))}/`;
     try {
-      const r = await fetch(url, { headers: { 'User-Agent': UA, 'Accept-Language': 'fr-FR,fr;q=0.9' }, signal: AbortSignal.timeout(15000), redirect: 'follow' });
-      const t = await r.text();
-      const txt = t.replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/&nbsp;|&#160;/g, ' ').replace(/\s+/g, ' ');
-      const hits = [...txt.matchAll(/.{0,120}(dividende|détachement|Détachement|coupon).{0,160}/gi)].slice(0, 6).map(m => m[0]);
-      const links = [...t.matchAll(/href="([^"]*(?:agenda|dividende)[^"]*)"/gi)].slice(0, 5).map(m => m[1]);
-      out.push({ name, status: r.status, finalUrl: r.url, len: t.length, hits, links });
-    } catch (e) { out.push({ name, error: String(e).slice(0, 120) }); }
-  }
-  return out;
+      const html = await get(u, { tries: 2, timeout: 20000, accept: 'text/html' });
+      const p = parseBoursoDiv(html);
+      if (p) { res[t] = { ...p, ts: now, url: u }; stat.fresh++; return; }
+      throw new Error('non trouvé');
+    } catch { if (old) { res[t] = old; stat.reused++; } else stat.fail++; }
+  }));
+  return { res, stat };
 }
 
 export async function main() {
@@ -268,7 +274,6 @@ export async function main() {
   for (const a of toTr) if (trMap.has(a.title)) a.titleFr = trMap.get(a.title);
 
   // Cours : Yahoo (session) → Google Finance (cours du jour, sans historique de dividendes) → valeur précédente
-  const divdiag = await divDiag();
   await yahooSession();
   const allT = [...new Set(cfg.yahoo.map(u => decodeURIComponent(u.split('/chart/')[1].split('?')[0])))];
   const cnbcMap = await fetchCNBC(allT);
@@ -291,15 +296,19 @@ export async function main() {
     failures.push({ url, error: `cours indisponible (${t} / ${gcode.get(t)})`, reusedPrevious: !!old });
   }));
 
+  // Dividendes Boursorama
+  const prevDiv = await getPrev('divinfo.json');
+  const { res: divinfo, stat: divStat } = await fetchBoursoDivs(allT, prevDiv?.items);
   const generated = new Date().toISOString();
   const meta = { generated, feedsTotal: cfg.feeds.length, feedsOk, feedsStale, yahooTotal: cfg.yahoo.length, yahooOk: yahooOk + googleOk + cnbcOk + boursoOk, yahooStale,
-    divdiag,
+    boursoDiv: divStat,
     prices: { cnbc: cnbcOk, boursorama: boursoOk, cnbcHttp: cnbc.status, cnbcUnresolved: cnbc.unresolved, yahoo: yahooOk, google: googleOk, yahooSession: yahoo.session, yahooHttp: yahoo.status, googleHttp: gfin.status },
     translated: trMap.size, translationsReused: prevTr.size, translationFailed: trFail,
     durationMs: Date.now() - t0, failures };
   await mkdir(new URL('data/', ROOT), { recursive: true });
   await writeFile(new URL('data/feeds.json', ROOT), JSON.stringify({ generated, feeds }));
   await writeFile(new URL('data/yahoo.json', ROOT), JSON.stringify({ generated, charts }));
+  await writeFile(new URL('data/divinfo.json', ROOT), JSON.stringify({ generated, items: divinfo }));
   await writeFile(new URL('data/meta.json', ROOT), JSON.stringify(meta, null, 1));
   console.log(`Flux ${feedsOk}/${cfg.feeds.length} (+${feedsStale} repris) · Cours CNBC ${cnbcOk} + Boursorama ${boursoOk} + Yahoo ${yahooOk} + Google ${googleOk} /${cfg.yahoo.length} (+${yahooStale} repris) · ${trMap.size} titres traduits · ${meta.durationMs} ms`);
   console.log('Yahoo', yahoo.session, JSON.stringify(yahoo.status), '· Google', JSON.stringify(gfin.status));

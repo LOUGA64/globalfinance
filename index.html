@@ -1028,13 +1028,13 @@ const RSS_PROXIES = [
   {name:'codetabs', type:'xml', url:u=>`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`},
 ];
 // ── Données pré-chargées côté serveur (GitHub Actions → data/*.json, même origine : rapide, sans proxy) ──
-const SRV={feeds:null,yahoo:null,meta:null,loadedAt:0};
+const SRV={feeds:null,yahoo:null,meta:null,div:null,loadedAt:0};
 let SRV_READY=null; // promesse : données serveur chargées (ou absentes)
 function srvReady(){ if(!SRV_READY)SRV_READY=loadServerData(); return SRV_READY; }
 async function loadServerData(){
   const get=async f=>{try{const r=await fetch(`data/${f}?v=${Date.now()}`,{cache:'no-store',signal:AbortSignal.timeout(10000)});return r.ok?await r.json():null;}catch(e){return null;}};
-  const [meta,feeds,yahoo]=await Promise.all([get('meta.json'),get('feeds.json'),get('yahoo.json')]);
-  SRV.meta=meta; SRV.feeds=feeds?.feeds||null; SRV.yahoo=yahoo?.charts||null; SRV.loadedAt=Date.now();
+  const [meta,feeds,yahoo,div]=await Promise.all([get('meta.json'),get('feeds.json'),get('yahoo.json'),get('divinfo.json')]);
+  SRV.meta=meta; SRV.feeds=feeds?.feeds||null; SRV.yahoo=yahoo?.charts||null; SRV.div=div?.items||null; SRV.loadedAt=Date.now();
   renderDataStatus();
 }
 function renderDataStatus(){
@@ -1665,12 +1665,15 @@ async function fetchYahoo(d){
     const ttmList=divs.filter(x=>x.date>=yearAgo);
     let ttm=ttmList.reduce((s,x)=>s+x.amount,0);
     // Sans historique Yahoo : dividende annuel indiqué par CNBC (pas de date de détachement)
-    if(!divs.length&&m.annualDividend!=null){
+    const bd=SRV.div?.[d.ticker];
+    if(!divs.length&&(m.annualDividend!=null||bd)){
       const k=m.currency==='GBp'?100:1;
+      const last=bd?.lastDate?{amount:bd.lastAmount,date:new Date(bd.lastDate+'T12:00:00').getTime()}:null;
       return {...d,ok:true,price:m.regularMarketPrice/k,priceTime:(m.regularMarketTime||0)*1000,currency:m.currency==='GBp'?'GBP':(m.currency||''),
-        last:null,lastAmount:null,ttm:m.annualDividend/k,nbTTM:null,srcDiv:'CNBC',
-        // calcul : dividende annuel ÷ cours du jour (mêmes unités)
-        rendement:m.regularMarketPrice?m.annualDividend/m.regularMarketPrice*100:null};
+        last,lastAmount:last?last.amount:null,ttm:m.annualDividend!=null?m.annualDividend/k:null,nbTTM:null,srcDiv:'CNBC',bourso:bd||null,
+        // calcul : dividende annuel ÷ cours du jour (mêmes unités) ; sinon rendement estimé Boursorama (FactSet)
+        rendement:(m.annualDividend!=null&&m.regularMarketPrice)?m.annualDividend/m.regularMarketPrice*100:(bd?.estYield??null),
+        rdtSrc:(m.annualDividend!=null&&m.regularMarketPrice)?'calc':(bd?.estYield!=null?'bourso':null)};
     }
     const price=m.regularMarketPrice;
     let cur=m.currency||''; let px=price, amt=ttm, last=divs[0]||null;
@@ -1735,7 +1738,7 @@ function renderDividends(warn){
 
   const byMonth={};
   data.forEach(d=>{
-    const key=d.last?new Date(d.last.date).toLocaleDateString('fr-FR',{month:'long',year:'numeric',timeZone:'Europe/Paris'}):(d.srcDiv?'Je ne sais pas (historique indisponible — dividende annuel CNBC)':'Aucun dividende sur 2 ans / donnée indisponible');
+    const key=d.last?new Date(d.last.date).toLocaleDateString('fr-FR',{month:'long',year:'numeric',timeZone:'Europe/Paris'}):(d.srcDiv?'Je ne sais pas (valeur hors Paris ou absente de Boursorama)':'Aucun dividende sur 2 ans / donnée indisponible');
     (byMonth[key]=byMonth[key]||[]).push(d);
   });
   for(const [mois,items] of Object.entries(byMonth)){
@@ -1751,7 +1754,7 @@ function renderDividends(warn){
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
           <div>
             <div style="font-weight:700;font-size:13px;color:var(--text)">${d.name}<span style="font-size:10px;color:var(--muted);font-weight:400"> ${d.ticker}</span></div>
-            <div style="font-size:10px;color:var(--muted);margin-top:2px">${d.index} · ${d.secteur}${d.ok?(d.srcDiv?' · calcul : dividende annuel CNBC ÷ cours du jour':` · ${d.nbTTM} versement(s) sur 12 mois`):''}</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:2px">${d.index} · ${d.secteur}${d.ok?(d.srcDiv?(d.rdtSrc==='bourso'?' · rendement estimé '+d.bourso.estYear+' (Boursorama / FactSet)':' · calcul : dividende annuel CNBC ÷ cours du jour'):` · ${d.nbTTM} versement(s) sur 12 mois`):''}</div>
           </div>
           <div style="text-align:right;flex-shrink:0">
             <div style="font-size:18px;font-weight:700;color:${rdtColor}">${d.rendement==null?'—':f(d.rendement)+'%'}</div>
@@ -1763,7 +1766,7 @@ function renderDividends(warn){
         ${d.ok?`
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px">
           <div style="background:var(--bg);border-radius:4px;padding:6px;text-align:center"><div style="font-size:12px;font-weight:700">${f(d.lastAmount,3)} ${d.currency}</div><div style="font-size:10px;color:var(--muted)">Dernier montant</div></div>
-          <div style="background:var(--bg);border-radius:4px;padding:6px;text-align:center"><div style="font-size:12px;font-weight:700">${d.srcDiv&&!d.last?'Je ne sais pas':lastDt}</div><div style="font-size:10px;color:var(--muted)">Dernier détachement (ex-date)</div></div>
+          <div style="background:var(--bg);border-radius:4px;padding:6px;text-align:center"><div style="font-size:12px;font-weight:700">${d.srcDiv&&!d.last?'Je ne sais pas':lastDt}</div>${d.bourso?.lastDate?'<div style="font-size:9px;color:var(--muted)">source Boursorama</div>':''}<div style="font-size:10px;color:var(--muted)">Dernier détachement (ex-date)</div></div>
           <div style="background:var(--bg);border-radius:4px;padding:6px;text-align:center"><div style="font-size:12px;font-weight:700">${f(d.ttm,3)} ${d.currency}</div><div style="font-size:10px;color:var(--muted)">${d.srcDiv?'Dividende annuel':'Total 12 mois'}</div></div>
         </div>
         <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--muted)">
@@ -1801,7 +1804,8 @@ async function fetchQuote(v){
     return {...v,ok:true,price,cur,time:(m.regularMarketTime||0)*1000,src:({google:'Google Finance',cnbc:'CNBC',boursorama:'Boursorama'})[m.source]||'Yahoo',
       chg:prev?(m.regularMarketPrice/prev-1)*100:null, prev,
       divA:m.annualDividend!=null?(cur==='GBP'?m.annualDividend/100:m.annualDividend):null,
-      rdtJ:m.annualDividend!=null&&m.regularMarketPrice?m.annualDividend/m.regularMarketPrice*100:null};
+      rdtJ:m.annualDividend!=null&&m.regularMarketPrice?m.annualDividend/m.regularMarketPrice*100:null,
+      bdiv:SRV.div?.[v.ticker]||null};
   }catch(e){return {...v,ok:false};}
 }
 
@@ -1818,6 +1822,7 @@ function renderMesQuotes(qs){
       ${q.ok?`<div style="font-size:16px;font-weight:700;margin-top:2px">${f(q.price)} ${sym[q.cur]||q.cur}</div>
       <div style="font-size:11px;font-weight:600;color:${col}">${q.chg==null?'—':(q.chg>=0?'▲ +':'▼ ')+q.chg.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' %'} <span style="font-weight:400;color:var(--muted);font-size:9px">vs veille</span></div>
       <div style="font-size:10px;margin-top:2px;color:var(--text2)" title="Calcul : dividende annuel indiqué par CNBC ÷ cours du jour">${q.rdtJ!=null?`Rdt J <b style="color:${rendementColor(q.rdtJ)}">${q.rdtJ.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})} %</b> <span style="color:var(--muted)">(div. ${q.divA.toLocaleString('fr-FR',{maximumFractionDigits:3})} ${sym[q.cur]||q.cur})</span>${q.rdtJ>9?' <span title="Rendement supérieur à 9 % : le dividende annuel CNBC inclut peut-être un dividende exceptionnel — à vérifier" style="color:var(--red);font-weight:700">⚠ à vérifier</span>':''}`:'<span style="color:var(--muted)">Rdt J : Je ne sais pas</span>'}</div>
+      ${q.bdiv?.lastDate?`<div style="font-size:9px;color:var(--muted)" title="Source : Boursorama">Dernier div. ${q.bdiv.lastAmount.toLocaleString('fr-FR',{maximumFractionDigits:3})} € le ${fmtD(q.bdiv.lastDate)}</div>`:''}
       <div style="font-size:9px;color:var(--muted)">${new Date(q.time).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Paris'})} · ${q.src}</div>`
       :`<div style="font-size:11px;color:var(--muted);margin-top:4px">Cours : Je ne sais pas</div>`}
     </div>`;};
