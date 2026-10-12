@@ -1,0 +1,40 @@
+name: Mise à jour des données
+
+on:
+  schedule:
+    # Toutes les 15 min en semaine de 7 h à 23 h (heure de Paris), toutes les 2 h sinon (heures en UTC)
+    - cron: '*/15 5-21 * * 1-5'
+    - cron: '7 */2 * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Récupérer flux et cours
+        run: node scripts/update-data.mjs
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - id: deployment
+        uses: actions/deploy-pages@v4
