@@ -164,19 +164,14 @@ async function probe(name, url, headers = {}) {
   } catch (e) { return { name, error: String(e.message || e).slice(0, 100), ms: Date.now() - t }; }
 }
 async function diagnostics() {
-  const P = [
-    ['google-en', 'https://www.google.com/finance/quote/BNP:EPA?hl=en', { Cookie: 'CONSENT=YES+cb' }],
-    ['google-fr', 'https://www.google.com/finance/quote/BNP:EPA?hl=fr'],
-    ['boursorama-ticks', 'https://www.boursorama.com/bourse/action/graph/ws/GetTicksEOD?symbol=1rPBNP&length=5&period=0&guid='],
-    ['boursorama-update', 'https://www.boursorama.com/bourse/action/graph/ws/UpdateCharts?symbol=1rPBNP&period=-1'],
-    ['ft', 'https://markets.ft.com/data/equities/tearsheet/summary?s=BNP:PAR'],
-    ['stooq', 'https://stooq.com/q/l/?s=bnp.fr&f=sd2t2ohlcp&h&e=csv'],
-    ['euronext-quote', 'https://live.euronext.com/en/ajax/getDetailedQuote/FR0000131104-XPAR'],
-    ['yahoo-spark', 'https://query1.finance.yahoo.com/v7/finance/spark?symbols=BNP.PA&range=5d&interval=1d'],
-    ['cnbc', 'https://quote.cnbc.com/quote-html-webservice/restQuote/symbolType/symbol?symbols=BNP-FR&requestMethod=itv&noform=1&partnerId=2&fund=1&exthrs=1&output=json'],
-    ['marketwatch', 'https://www.marketwatch.com/investing/stock/bnp?countrycode=fr'],
-  ];
-  return Promise.all(P.map(([n, u, h]) => probe(n, u, h)));
+  const out = [];
+  const raw = async (name, url) => { try { const r = await fetch(url, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(15000) }); const t = await r.text(); out.push({ name, status: r.status, body: t.slice(0, 2500) }); } catch (e) { out.push({ name, error: String(e) }); } };
+  await raw('cnbc-multi', 'https://quote.cnbc.com/quote-html-webservice/restQuote/symbolType/symbol?symbols=' + encodeURIComponent('BNP-FR|ELISA-FI|AKRBP-NO|ISP-IT|HAVAS-NL|CAN-GB|CHMI|SFL|COFA-FR|ALHF-FR') + '&requestMethod=itv&noform=1&partnerId=2&fund=1&exthrs=1&output=json');
+  await raw('bourso-COFA', 'https://www.boursorama.com/bourse/action/graph/ws/UpdateCharts?symbol=1rPCOFA&period=-1');
+  await raw('bourso-ALHF', 'https://www.boursorama.com/bourse/action/graph/ws/UpdateCharts?symbol=1rPALHF&period=-1');
+  await raw('bourso-ISP', 'https://www.boursorama.com/bourse/action/graph/ws/UpdateCharts?symbol=1gISP&period=-1');
+  await raw('bourso-GLE-5d', 'https://www.boursorama.com/bourse/action/graph/ws/UpdateCharts?symbol=1rPGLE&period=0');
+  return out;
 }
 
 export async function main() {
