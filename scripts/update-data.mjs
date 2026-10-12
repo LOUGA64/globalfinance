@@ -213,19 +213,43 @@ export function parseBoursoDiv(html) {
   if (f) out.dpsFactSet = f.slice(1, 4).map(x => x === '-' ? null : parseFloat(x.replace(/ /g, '').replace(',', '.')));
   return Object.keys(out).length ? out : null;
 }
-async function fetchBoursoDivs(tickers, prev) {
-  const res = {}, stat = { fresh: 0, reused: 0, fail: 0 };
+// Codes Boursorama hors Paris : préfixe de place inconnu → essais sur l'API légère UpdateCharts,
+// validés par le cours (écart < 4 % avec CNBC) pour ne pas confondre deux titres. Résultat mémorisé.
+const BOURSO_PREFIXES = ['1rA', '1rB', '1rL', '1rO', '1rI', '1g', '1z', '1zX', '1q', '1n', '1u', '1v', '1h', '1f', '1x', '1y', '1t', '1w', '1e', '1d', '1c', '1b', '1a', '1i', '1j', '1k', '1l', '1m', '1o', '1p', '1s', '1rN', '1rF', '1rS', '1rC', '1rD', '1rE', '1rH', '1rM'];
+async function boursoQuote(sym) {
+  const u = `https://www.boursorama.com/bourse/action/graph/ws/UpdateCharts?symbol=${encodeURIComponent(sym)}&period=-1`;
+  try { const r = await withHost(u, () => fetch(u, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(10000) })); if (!r.ok) return null;
+    const d = JSON.parse(await r.text())?.d?.[0]; return d && d.c != null ? d.c : null; } catch { return null; }
+}
+async function resolveBoursoSym(t, refPrice) {
+  if (t.endsWith('.PA')) return `1rP${t.slice(0, -3)}`;
+  if (refPrice == null) return null;
+  const code = t.split('.')[0];
+  for (const p of BOURSO_PREFIXES) {
+    const c = await boursoQuote(p + code);
+    if (c != null && Math.abs(c / refPrice - 1) < 0.04) return p + code;
+  }
+  return null;
+}
+async function fetchBoursoDivs(tickers, prev, refPrices) {
+  const res = {}, stat = { fresh: 0, reused: 0, fail: 0, resolved: [], unresolved: [] };
   const now = Date.now();
-  await Promise.all(tickers.filter(t => t.endsWith('.PA')).map(async t => {
+  await Promise.all(tickers.map(async t => {
     const old = prev?.[t];
-    if (old && now - old.ts < 6 * 3600e3) { res[t] = old; stat.reused++; return; }
-    const u = `https://www.boursorama.com/cours/1rP${encodeURIComponent(t.slice(0, -3))}/`;
+    if (old && old.sym && now - old.ts < 6 * 3600e3) { res[t] = old; stat.reused++; return; }
+    // symbole déjà trouvé (gardé 30 jours) ou nouvelle recherche ; échec mémorisé 7 jours pour ne pas réessayer à chaque passage
+    let sym = old?.sym;
+    if (!sym && old?.noSym && now - old.noSymTs < 7 * 864e5) { res[t] = old; stat.reused++; return; }
+    if (!sym) sym = await resolveBoursoSym(t, refPrices.get(t));
+    if (!sym) { res[t] = { noSym: true, noSymTs: now }; stat.unresolved.push(t); return; }
+    if (!t.endsWith('.PA') && !old?.sym) stat.resolved.push(t + '→' + sym);
+    const u = `https://www.boursorama.com/cours/${encodeURIComponent(sym)}/`;
     try {
       const html = await get(u, { tries: 2, timeout: 20000, accept: 'text/html' });
       const p = parseBoursoDiv(html);
-      if (p) { res[t] = { ...p, ts: now, url: u }; stat.fresh++; return; }
+      if (p) { res[t] = { ...p, ts: now, url: u, sym }; stat.fresh++; return; }
       throw new Error('non trouvé');
-    } catch { if (old) { res[t] = old; stat.reused++; } else stat.fail++; }
+    } catch { if (old?.lastDate || old?.estYield != null) { res[t] = old; stat.reused++; } else { res[t] = { sym, ts: now, url: u }; stat.fail++; } }
   }));
   return { res, stat };
 }
@@ -298,7 +322,8 @@ export async function main() {
 
   // Dividendes Boursorama
   const prevDiv = await getPrev('divinfo.json');
-  const { res: divinfo, stat: divStat } = await fetchBoursoDivs(allT, prevDiv?.items);
+  const refPrices = new Map([...cnbcMap].map(([t, c]) => [t, c.chart.result[0].meta.regularMarketPrice]));
+  const { res: divinfo, stat: divStat } = await fetchBoursoDivs(allT, prevDiv?.items, refPrices);
   const generated = new Date().toISOString();
   const meta = { generated, feedsTotal: cfg.feeds.length, feedsOk, feedsStale, yahooTotal: cfg.yahoo.length, yahooOk: yahooOk + googleOk + cnbcOk + boursoOk, yahooStale,
     boursoDiv: divStat,
