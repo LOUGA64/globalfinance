@@ -1029,6 +1029,8 @@ const RSS_PROXIES = [
 ];
 // ── Données pré-chargées côté serveur (GitHub Actions → data/*.json, même origine : rapide, sans proxy) ──
 const SRV={feeds:null,yahoo:null,meta:null,loadedAt:0};
+let SRV_READY=null; // promesse : données serveur chargées (ou absentes)
+function srvReady(){ if(!SRV_READY)SRV_READY=loadServerData(); return SRV_READY; }
 async function loadServerData(){
   const get=async f=>{try{const r=await fetch(`data/${f}?v=${Date.now()}`,{cache:'no-store',signal:AbortSignal.timeout(10000)});return r.ok?await r.json():null;}catch(e){return null;}};
   const [meta,feeds,yahoo]=await Promise.all([get('meta.json'),get('feeds.json'),get('yahoo.json')]);
@@ -1091,6 +1093,7 @@ async function fetchViaProxy(p,src){
 async function fetchFeed(url){ return fetchRSS({url,source:'',country:'fr',lang:'fr',fixed:true}); }
 // Récupère un texte quelconque (JSON Yahoo…) via les proxies texte
 async function fetchTextViaProxies(url){
+  await srvReady();
   if(SRV.yahoo){ if(SRV.yahoo[url])return JSON.stringify(SRV.yahoo[url]); if(Object.keys(SRV.yahoo).length>20)return null; }
   for(const p of RSS_PROXIES.filter(p=>p.type!=='json2')){
     try{
@@ -1113,6 +1116,7 @@ function mapItems(items,src){
   }).filter(a=>a.title.length>10);
 }
 async function fetchRSS(src){
+  await srvReady();
   const cached=SRV.feeds&&SRV.feeds[src.url];
   if(Array.isArray(cached))return mapItems(cached,src);
   // Données serveur présentes mais ce flux a échoué côté serveur : inutile de passer par les proxies (lents, souvent HS)
@@ -1614,7 +1618,8 @@ function renderDivAgenda(){
   </div>`;
 }
 
-const DIV_CACHE_KEY='div_cache_v2', DIV_TTL=30*60*1000;
+try{localStorage.removeItem('div_cache_v1');localStorage.removeItem('div_cache_v2');}catch(e){}
+const DIV_CACHE_KEY='div_cache_v3', DIV_TTL=30*60*1000;
 let divFilter='all', divData=null, divLoading=false, divStamp=null;
 
 function rendementColor(r){
@@ -1667,7 +1672,7 @@ async function loadDividends(force){
     divData=res;divStamp=null;renderDividends('⛔ Yahoo Finance injoignable et aucun cache — Je ne sais pas.');return;
   }
   divData=res;divStamp=Date.now();
-  try{localStorage.setItem(DIV_CACHE_KEY,JSON.stringify({ts:divStamp,items:res}));}catch(e){}
+  if(SRV.yahoo&&okN>=res.length*0.8){try{localStorage.setItem(DIV_CACHE_KEY,JSON.stringify({ts:divStamp,items:res}));}catch(e){}}
   renderDividends();
 }
 
@@ -1885,7 +1890,7 @@ document.querySelectorAll('.ni').forEach((n,i)=>n.addEventListener('click',()=>{
 // ── Init ──────────────────────────────────────────────
 function activeTab(){return document.querySelector('.tab.active')?.dataset.tab;}
 async function refreshAll(){
-  await loadServerData();
+  SRV_READY=loadServerData(); await SRV_READY;
   loadNews(); loadReg(); loadOPA();
   const t=activeTab();
   if(t==='ai')loadAINews();
@@ -1894,7 +1899,7 @@ async function refreshAll(){
   if(t==='div'){divData=null;loadDividends(true);}
 }
 (async()=>{
-  await loadServerData();
+  await srvReady();
   loadNews(); loadReg(); loadOPA();
   setInterval(refreshAll,15*60*1000);
   setInterval(renderDataStatus,60*1000);
