@@ -216,6 +216,8 @@ export function parseBoursoDiv(html) {
 // Codes Boursorama hors Paris : préfixe de place inconnu → essais sur l'API légère UpdateCharts,
 // validés par le cours (écart < 4 % avec CNBC) pour ne pas confondre deux titres. Résultat mémorisé.
 const BOURSO_PREFIXES = ['1rA', '1rB', '1rL', '1rO', '1rI', '1g', '1z', '1zX', '1q', '1n', '1u', '1v', '1h', '1f', '1x', '1y', '1t', '1w', '1e', '1d', '1c', '1b', '1a', '1i', '1j', '1k', '1l', '1m', '1o', '1p', '1s', '1rN', '1rF', '1rS', '1rC', '1rD', '1rE', '1rH', '1rM'];
+// Codes relevés dans la recherche Boursorama le 12/10/2026 (Suisse 2a, Madrid FF55-, Londres 1u…L, USA code brut)
+const BOURSO_SYM = { 'NESN.SW': '2aNESN', 'NOVN.SW': '2aNOVN', 'ABBN.SW': '2aABBN', 'IBE.MC': 'FF55-IBE', 'SAN.MC': 'FF55-SAN', 'CAN.L': '1uCAN.L', 'CHMI': 'CHMI', 'SFL': 'SFL' };
 async function boursoQuote(sym) {
   const u = `https://www.boursorama.com/bourse/action/graph/ws/UpdateCharts?symbol=${encodeURIComponent(sym)}&period=-1`;
   try { const r = await withHost(u, () => fetch(u, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(10000) })); if (!r.ok) return null;
@@ -236,9 +238,9 @@ async function fetchBoursoDivs(tickers, prev, refPrices) {
   const now = Date.now();
   await Promise.all(tickers.map(async t => {
     const old = prev?.[t];
-    if (old && old.sym && now - old.ts < 6 * 3600e3) { res[t] = old; stat.reused++; return; }
+    if (old && old.sym && (!BOURSO_SYM[t] || old.sym === BOURSO_SYM[t]) && now - old.ts < 6 * 3600e3) { res[t] = old; stat.reused++; return; }
     // symbole déjà trouvé (gardé 30 jours) ou nouvelle recherche ; échec mémorisé 7 jours pour ne pas réessayer à chaque passage
-    let sym = old?.sym;
+    let sym = BOURSO_SYM[t] || old?.sym;
     if (!sym && old?.noSym && now - old.noSymTs < 7 * 864e5) { res[t] = old; stat.reused++; return; }
     if (!sym) sym = await resolveBoursoSym(t, refPrices.get(t));
     if (!sym) { res[t] = { noSym: true, noSymTs: now }; stat.unresolved.push(t); return; }
