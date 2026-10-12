@@ -17,13 +17,14 @@ export function readConfig(html) {
   const b = html.indexOf('/*@@CONFIG-END@@*/');
   if (a < 0 || b < 0) throw new Error('Bloc CONFIG introuvable dans index.html');
   const code = html.slice(html.indexOf('*/', a) + 2, b);
-  return new vm.Script(code + '\n;({feeds:ALL_FEEDS(), yahoo:ALL_YAHOO()})').runInNewContext({});
+  return new vm.Script(code + '\n;({feeds:ALL_FEEDS(), yahoo:ALL_YAHOO(), tickers:ALL_TICKERS()})').runInNewContext({});
 }
 
 // ── 2. Parseur RSS/Atom (identique à celui de la page) ──
+export function isFeed(xml) { return typeof xml === 'string' && /<(rss|feed|rdf)[\s>]/i.test(xml); }
 export function parseRSS(xml) {
   const items = [];
-  if (!xml || typeof xml !== 'string' || !/<(rss|feed|rdf)/i.test(xml)) return items;
+  if (!isFeed(xml)) return items;
   const getTag = (s, tag) => {
     const m = s.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i'));
     return m ? m[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/, '$1').replace(/<[^>]*>/g, '')
@@ -45,7 +46,7 @@ export function parseRSS(xml) {
 
 // ── 3. Téléchargement avec limite de concurrence par hôte ──
 const hostQueues = new Map();
-const HOST_LIMIT = { 'news.google.com': 3, 'query1.finance.yahoo.com': 4, 'query2.finance.yahoo.com': 4 };
+const HOST_LIMIT = { 'news.google.com': 3, 'query1.finance.yahoo.com': 3, 'query2.finance.yahoo.com': 3, 'www.google.com': 3, 'www.sec.gov': 2 };
 async function withHost(url, fn) {
   const h = new URL(url).hostname, lim = HOST_LIMIT[h] || 6;
   let q = hostQueues.get(h); if (!q) { q = { n: 0, w: [] }; hostQueues.set(h, q); }
@@ -53,14 +54,17 @@ async function withHost(url, fn) {
   q.n++;
   try { return await fn(); } finally { q.n--; const nx = q.w.shift(); if (nx) setTimeout(nx, h === 'news.google.com' ? 250 : 0); }
 }
-async function get(url, { tries = 2, timeout = 15000, accept = '*/*' } = {}) {
+// La SEC exige un User-Agent déclaré (nom d'application + contact), sinon 403
+const SEC_UA = 'GlobalFinance personal dashboard github.com/LOUGA64/globalfinance';
+async function get(url, { tries = 2, timeout = 15000, accept = '*/*', headers = {} } = {}) {
   let last;
   for (let i = 0; i < tries; i++) {
     try {
-      const r = await withHost(url, () => fetch(url, { headers: { 'User-Agent': UA, Accept: accept, 'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8' }, signal: AbortSignal.timeout(timeout), redirect: 'follow' }));
+      const ua = url.includes('sec.gov') ? SEC_UA : UA;
+      const r = await withHost(url, () => fetch(url, { headers: { 'User-Agent': ua, Accept: accept, 'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8', ...headers }, signal: AbortSignal.timeout(timeout), redirect: 'follow' }));
       if (r.ok) return await r.text();
       last = new Error('HTTP ' + r.status);
-      if (r.status === 404 || r.status === 403) break;
+      if (r.status === 404 || r.status === 403 || r.status === 400) break;
     } catch (e) { last = e; }
     await new Promise(r => setTimeout(r, 1500 * (i + 1)));
   }
@@ -93,6 +97,59 @@ export function slimYahoo(json, url) {
   return { chart: { result: [slim] } };
 }
 
+export // ── Yahoo : session (cookie + crumb), indispensable depuis les serveurs cloud ──
+const yahoo = { cookie: '', crumb: '', status: {} };
+async function yahooSession() {
+  try {
+    const r = await fetch('https://fc.yahoo.com/', { headers: { 'User-Agent': UA }, redirect: 'manual', signal: AbortSignal.timeout(10000) });
+    const sc = r.headers.getSetCookie ? r.headers.getSetCookie() : [r.headers.get('set-cookie') || ''];
+    yahoo.cookie = sc.map(c => c.split(';')[0]).filter(Boolean).join('; ');
+    const c = await fetch('https://query2.finance.yahoo.com/v1/test/getcrumb', { headers: { 'User-Agent': UA, Cookie: yahoo.cookie }, signal: AbortSignal.timeout(10000) });
+    yahoo.crumb = c.ok ? (await c.text()).trim() : '';
+    yahoo.session = `cookie:${yahoo.cookie ? 'oui' : 'non'} crumb:${yahoo.crumb ? 'oui' : 'HTTP ' + c.status}`;
+  } catch (e) { yahoo.session = 'échec ' + (e.message || e); }
+}
+async function fetchYahoo(url) {
+  for (const host of ['query1.', 'query2.']) {
+    let u = url.replace('query1.', host);
+    if (yahoo.crumb) u += '&crumb=' + encodeURIComponent(yahoo.crumb);
+    try {
+      const r = await withHost(u, () => fetch(u, { headers: { 'User-Agent': UA, Accept: 'application/json', ...(yahoo.cookie ? { Cookie: yahoo.cookie } : {}) }, signal: AbortSignal.timeout(15000) }));
+      yahoo.status[r.status] = (yahoo.status[r.status] || 0) + 1;
+      if (!r.ok) { if (r.status === 429) await new Promise(z => setTimeout(z, 1500)); continue; }
+      const s = slimYahoo(JSON.parse(await r.text()), url);
+      if (s) return s;
+    } catch (e) { yahoo.status.err = (yahoo.status.err || 0) + 1; }
+  }
+  return null;
+}
+// ── Google Finance (page publique) : cours + clôture veille, mis au format Yahoo pour la page ──
+const gfin = { status: {} };
+const num = v => { const n = parseFloat(String(v).replace(/[^\d.,-]/g, '').replace(/,(?=\d{3}\b)/g, '').replace(',', '.')); return isFinite(n) ? n : null; };
+export function parseGoogleFinance(html) {
+  const price = num((html.match(/data-last-price="([^"]+)"/) || [])[1]);
+  if (price == null) return null;
+  let cur = (html.match(/data-currency-code="([A-Z]{3})"/) || [])[1] || 'EUR';
+  const ts = parseInt((html.match(/data-last-normal-market-timestamp="(\d+)"/) || [])[1] || '0', 10);
+  const pcBlock = (html.match(/Previous close[\s\S]{0,400}/i) || [''])[0].replace(/<[^>]*>/g, ' ');
+  const prev = num((pcBlock.match(/[$€£]?\s?\d[\d,]*\.?\d*/g) || []).find(x => /\d/.test(x)));
+  let p = price, pv = prev;
+  if (cur === 'GBX') cur = 'GBp';
+  return { meta: { currency: cur, regularMarketPrice: p, regularMarketTime: ts || Math.floor(Date.now() / 1000), chartPreviousClose: pv, source: 'google' },
+    indicators: { quote: [{ close: pv != null ? [pv, p] : [p] }] } };
+}
+async function fetchGoogle(code) {
+  const u = `https://www.google.com/finance/quote/${code}?hl=en`;
+  try {
+    const r = await withHost(u, () => fetch(u, { headers: { 'User-Agent': UA, 'Accept-Language': 'en-US,en;q=0.9', Cookie: 'CONSENT=YES+cb' }, signal: AbortSignal.timeout(15000) }));
+    gfin.status[r.status] = (gfin.status[r.status] || 0) + 1;
+    if (!r.ok) return null;
+    const g = parseGoogleFinance(await r.text());
+    if (!g) gfin.status.parse = (gfin.status.parse || 0) + 1;
+    return g ? { chart: { result: [g] } } : null;
+  } catch { gfin.status.err = (gfin.status.err || 0) + 1; return null; }
+}
+
 export async function main() {
   const html = await readFile(new URL('index.html', ROOT), 'utf8');
   const cfg = readConfig(html);
@@ -104,8 +161,9 @@ export async function main() {
   const feeds = {}, failures = []; let feedsOk = 0, feedsStale = 0;
   await Promise.all(cfg.feeds.map(async f => {
     try {
-      let items = parseRSS(await get(f.url, { accept: 'application/rss+xml,application/atom+xml,application/xml,text/xml,*/*' }));
-      if (!items.length) throw new Error('flux vide ou non-RSS');
+      const xml = await get(f.url, { accept: 'application/rss+xml,application/atom+xml,application/xml,text/xml,*/*' });
+      if (!isFeed(xml)) throw new Error('réponse non-RSS : ' + xml.slice(0, 60).replace(/\s+/g, ' '));
+      let items = parseRSS(xml);   // 0 article = flux valide mais vide (conservé tel quel)
       items = items.filter(a => { const t = new Date(a.pubDate).getTime(); return isNaN(t) || t > lim; }).slice(0, MAX_ITEMS);
       feeds[f.url] = items; feedsOk++;
     } catch (e) {
@@ -135,31 +193,37 @@ export async function main() {
   }
   for (const a of toTr) if (trMap.has(a.title)) a.titleFr = trMap.get(a.title);
 
-  // Cours Yahoo
-  const charts = {}; let yahooOk = 0, yahooStale = 0;
+  // Cours : Yahoo (session) → Google Finance (cours du jour, sans historique de dividendes) → valeur précédente
+  await yahooSession();
+  const gcode = new Map(cfg.tickers.map(x => [x.t, x.g]));
+  const charts = {}; let yahooOk = 0, yahooStale = 0, googleOk = 0;
   await Promise.all(cfg.yahoo.map(async url => {
-    for (const u of [url, url.replace('query1.', 'query2.')]) {
-      try { const s = slimYahoo(JSON.parse(await get(u, { accept: 'application/json' })), url); if (s) { charts[url] = s; yahooOk++; return; } }
-      catch {}
+    const t = decodeURIComponent(url.split('/chart/')[1].split('?')[0]);
+    let s = await fetchYahoo(url);
+    if (s) { charts[url] = s; yahooOk++; return; }
+    if (url.includes('range=5d')) {
+      s = await fetchGoogle(gcode.get(t));
+      if (s) { charts[url] = s; googleOk++; return; }
     }
     const old = prevYahoo?.charts?.[url];
     if (old) { charts[url] = old; yahooStale++; }
-    failures.push({ url, error: 'Yahoo indisponible', reusedPrevious: !!old });
+    failures.push({ url, error: `cours indisponible (${t} / ${gcode.get(t)})`, reusedPrevious: !!old });
   }));
 
   const generated = new Date().toISOString();
-  const meta = { generated, feedsTotal: cfg.feeds.length, feedsOk, feedsStale, yahooTotal: cfg.yahoo.length, yahooOk, yahooStale,
+  const meta = { generated, feedsTotal: cfg.feeds.length, feedsOk, feedsStale, yahooTotal: cfg.yahoo.length, yahooOk: yahooOk + googleOk, yahooStale,
+    prices: { yahoo: yahooOk, google: googleOk, yahooSession: yahoo.session, yahooHttp: yahoo.status, googleHttp: gfin.status },
     translated: trMap.size, translationsReused: prevTr.size, translationFailed: trFail,
     durationMs: Date.now() - t0, failures };
   await mkdir(new URL('data/', ROOT), { recursive: true });
   await writeFile(new URL('data/feeds.json', ROOT), JSON.stringify({ generated, feeds }));
   await writeFile(new URL('data/yahoo.json', ROOT), JSON.stringify({ generated, charts }));
   await writeFile(new URL('data/meta.json', ROOT), JSON.stringify(meta, null, 1));
-  console.log(`Flux ${feedsOk}/${cfg.feeds.length} (+${feedsStale} repris) · Cours ${yahooOk}/${cfg.yahoo.length} (+${yahooStale} repris) · ${trMap.size} titres traduits · ${meta.durationMs} ms`);
+  console.log(`Flux ${feedsOk}/${cfg.feeds.length} (+${feedsStale} repris) · Cours Yahoo ${yahooOk} + Google ${googleOk} /${cfg.yahoo.length} (+${yahooStale} repris) · ${trMap.size} titres traduits · ${meta.durationMs} ms`);
+  console.log('Yahoo', yahoo.session, JSON.stringify(yahoo.status), '· Google', JSON.stringify(gfin.status));
   for (const f of failures.slice(0, 40)) console.log('  ✗', f.error, f.url.slice(0, 110));
   // Échec total = ne pas déployer (on garde la version précédente en ligne)
-  if (feedsOk === 0 && yahooOk === 0) { console.error('Aucune source joignable : déploiement annulé'); process.exit(1); }
+  if (feedsOk === 0 && yahooOk + googleOk === 0) { console.error('Aucune source joignable : déploiement annulé'); process.exit(1); }
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) main().catch(e => { console.error(e); process.exit(1); });
-
