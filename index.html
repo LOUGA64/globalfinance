@@ -1594,28 +1594,53 @@ const DIV_AGENDA=[
 function fmtD(iso){const [y,m,d]=iso.split('-');return `${d}/${m}/${y}`;}
 function todayISO(){return new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Paris'});}
 function nextAgenda(t){const td=todayISO();return DIV_AGENDA.filter(a=>a.ticker===t&&a.ex>=td).sort((a,b)=>a.ex.localeCompare(b.ex))[0]||null;}
+function agendaPrice(t){
+  for(const u of [yahooQuoteUrl(t),yahooDivUrl(t)]){const m=SRV.yahoo?.[u]?.chart?.result?.[0]?.meta; if(m&&m.regularMarketPrice!=null)return {p:m.currency==='GBp'?m.regularMarketPrice/100:m.regularMarketPrice,time:m.regularMarketTime*1000};}
+  return null;
+}
 function renderDivAgenda(){
   const td=todayISO();
   const lim=new Date(Date.now()-30*864e5).toLocaleDateString('sv-SE',{timeZone:'Europe/Paris'});
   const up=DIV_AGENDA.filter(a=>a.ex>=td).sort((a,b)=>a.ex.localeCompare(b.ex));
   const past=DIV_AGENDA.filter(a=>a.ex<td&&a.ex>=lim).sort((a,b)=>b.ex.localeCompare(a.ex));
-  const row=(a,isPast)=>{
+  const f=(v,n=2)=>v==null?'—':v.toLocaleString('fr-FR',{minimumFractionDigits:n,maximumFractionDigits:n});
+  const days=iso=>Math.round((new Date(iso+'T12:00:00')-new Date(td+'T12:00:00'))/864e5);
+  const box=(val,lab)=>`<div style="background:var(--bg);border-radius:4px;padding:6px;text-align:center"><div style="font-size:12px;font-weight:700">${val}</div><div style="font-size:10px;color:var(--muted)">${lab}</div></div>`;
+  // Même présentation que les cartes des sociétés ci-dessous
+  const card=(a,isPast)=>{
     const conf=a.statut.startsWith('Confirmé');
-    return `<div style="padding:9px 10px;border-bottom:1px solid var(--border);${isPast?'opacity:.7':''}">
-      <div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline">
-        <div><b>${a.name}</b> <span style="font-size:10px;color:var(--muted)">${a.ticker}</span><div style="font-size:10px;color:var(--muted)">${a.type}</div></div>
-        <div style="text-align:right;flex-shrink:0"><b>${a.amount==null?'Je ne sais pas':a.amount.toLocaleString('fr-FR',{minimumFractionDigits:2})+' €'}</b>
-          <div style="font-size:10px;color:var(--muted)">ex ${fmtD(a.ex)} · paiement ${fmtD(a.pay)}</div></div>
+    const col=conf?'#10b981':'#f59e0b';
+    const px=agendaPrice(a.ticker);
+    const rdtCoupon=(a.amount!=null&&px)?a.amount/px.p*100:null; // calcul : montant du coupon ÷ cours du jour
+    const n=days(a.ex);
+    const srcShort=a.src.split(/ — | ; /)[0];
+    return `<div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid ${col};border-radius:6px;padding:12px;margin-bottom:8px;${isPast?'opacity:.6':''}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <div>
+          <div style="font-weight:700;font-size:13px;color:var(--text)">${a.name}<span style="font-size:10px;color:var(--muted);font-weight:400"> ${a.ticker}</span></div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">${a.type}</div>
+          <div style="margin-top:4px"><span style="font-size:10px;padding:1px 6px;border-radius:3px;${conf?'background:var(--green-bg);color:var(--green)':'background:var(--gold-light);color:var(--gold)'};font-weight:600">${conf?'✓ ':''}${a.statut}</span></div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:18px;font-weight:700;color:${col}">${a.amount==null?'Je ne sais pas':f(a.amount)+' €'}</div>
+          <div style="font-size:10px;color:var(--muted)">par action</div>
+        </div>
       </div>
-      <div style="font-size:10px;margin-top:4px"><span style="padding:1px 6px;border-radius:3px;${conf?'background:var(--green-bg);color:var(--green)':'background:var(--gold-light);color:var(--gold)'};font-weight:600">${a.statut}</span>
-        <a href="${a.url}" target="_blank" rel="noopener" style="color:var(--muted);margin-left:6px">${a.src} ↗</a></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px">
+        ${box(fmtD(a.ex)+`<div style="font-size:9px;font-weight:600;color:${isPast?'var(--muted)':(n<=14?'var(--red)':'var(--muted)')}">${isPast?'il y a '+(-n)+' j':(n===0?'aujourd\'hui':'J-'+n)}</div>`,'Détachement (ex-date)')}
+        ${box(fmtD(a.pay),'Paiement')}
+        ${box(rdtCoupon==null?'—':f(rdtCoupon)+' %','Rdt du coupon')}
+      </div>
+      <div style="margin-top:8px;display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:10px;color:var(--muted)">
+        <div>Cours : ${px?f(px.p)+' € ('+new Date(px.time).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Paris'})+')':'Je ne sais pas'}</div>
+        <a href="${a.url}" target="_blank" rel="noopener" title="${escAttr(a.src)}" style="color:var(--accent);text-decoration:none;white-space:nowrap">Source : ${srcShort.length>38?srcShort.slice(0,36)+'…':srcShort} ↗</a>
+      </div>
     </div>`;};
-  return `<div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid #10b981;border-radius:6px;margin-bottom:14px;overflow:hidden">
-    <div style="padding:10px;font-weight:700;font-size:13px;border-bottom:1px solid var(--border)">📅 Prochains détachements annoncés <span style="font-weight:400;font-size:10px;color:var(--muted)">· liste vérifiée le ${DIV_AGENDA_MAJ}</span></div>
-    ${up.length?up.map(a=>row(a,false)).join(''):'<div style="padding:10px;font-size:11px;color:var(--muted)">Aucun détachement à venir dans la liste vérifiée — Je ne sais pas pour les autres sociétés.</div>'}
-    ${past.length?`<div style="padding:6px 10px;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);background:var(--surface2)">Détachés ces 30 derniers jours</div>${past.map(a=>row(a,true)).join('')}`:''}
-    <div style="padding:8px 10px;font-size:10px;color:var(--muted);background:var(--surface2)">Liste <b>non exhaustive</b> : seules les dates retrouvées dans une source datée y figurent. Pour une société absente : Je ne sais pas — consulter l'agenda de votre courtier ou le site investisseurs de la société.</div>
-  </div>`;
+  const h=t=>`<div style="font-family:'Playfair Display',serif;font-size:13px;font-weight:700;font-style:italic;color:var(--text);margin:14px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border)">${t}</div>`;
+  return h(`📅 Prochains détachements annoncés <span style="font-family:'DM Sans',sans-serif;font-style:normal;font-weight:400;font-size:10px;color:var(--muted)">· liste vérifiée le ${DIV_AGENDA_MAJ}</span>`)
+    +(up.length?up.map(a=>card(a,false)).join(''):'<div style="font-size:11px;color:var(--muted);margin-bottom:8px">Aucun détachement à venir dans la liste vérifiée — Je ne sais pas pour les autres sociétés.</div>')
+    +(past.length?h('Détachés ces 30 derniers jours')+past.map(a=>card(a,true)).join(''):'')
+    +`<div style="font-size:10px;color:var(--muted);margin:4px 0 14px">Liste <b>non exhaustive</b> : seules les dates retrouvées dans une source datée y figurent. « Rdt du coupon » = <b>calcul</b> : montant du coupon ÷ cours du jour. Pour une société absente : Je ne sais pas.</div>`;
 }
 
 try{localStorage.removeItem('div_cache_v1');localStorage.removeItem('div_cache_v2');}catch(e){}
@@ -1703,7 +1728,7 @@ function renderDividends(warn){
 
   const stamp=divStamp?new Date(divStamp):null;
   let html=`<div style="font-size:11px;padding:8px 10px;margin-bottom:8px;border-radius:6px;background:${warn?'var(--red-bg)':'var(--blue-bg)'}">
-    ${warn?warn+'<br>':''}Source : Yahoo Finance (cours + dividendes détachés)${stamp?` · récupéré le <b>${stamp.toLocaleDateString('fr-FR')} à ${stamp.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</b>`:''}
+    ${warn?warn+'<br>':''}Source : CNBC (cours + dividende annuel), données serveur${SRV.meta?' du <b>'+new Date(SRV.meta.generated).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Paris'})+'</b>':''}${stamp?` · affiché le <b>${stamp.toLocaleDateString('fr-FR')} à ${stamp.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</b>`:''}
     · <a href="#" onclick="divData=null;loadDividends(true);return false">↻ Actualiser</a></div>`;
   html=renderDivAgenda()+html;
   if(!data.length){document.getElementById('divList').innerHTML=html+`<div class="loader" style="color:var(--muted)">Aucune société pour ce filtre</div>`;return;}
