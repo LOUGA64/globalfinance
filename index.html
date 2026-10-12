@@ -1686,7 +1686,9 @@ async function fetchYahoo(d){
 
 async function loadDividends(force){
   if(divLoading)return;
-  if(!force&&!divData){
+  await srvReady();
+  // Données serveur présentes : lecture instantanée, le cache local ne sert que si elles sont absentes
+  if(!force&&!divData&&!SRV.yahoo){
     try{const c=JSON.parse(localStorage.getItem(DIV_CACHE_KEY)||'null');
       if(c&&Date.now()-c.ts<DIV_TTL){divData=c.items;divStamp=c.ts;renderDividends();return;}}catch(e){}
   }
@@ -1921,6 +1923,7 @@ document.querySelectorAll('.ni').forEach((n,i)=>n.addEventListener('click',()=>{
 function activeTab(){return document.querySelector('.tab.active')?.dataset.tab;}
 async function refreshAll(){
   SRV_READY=loadServerData(); await SRV_READY;
+  divData=null; // les dividendes seront relus depuis les nouvelles données serveur
   loadNews(); loadReg(); loadOPA();
   const t=activeTab();
   if(t==='ai')loadAINews();
