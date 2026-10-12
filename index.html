@@ -367,7 +367,7 @@
     <div id="divList"></div>
 
     <div style="font-size:10px;color:var(--muted);margin-top:16px;padding:10px;background:var(--surface);border-radius:6px;border:1px solid var(--border)">
-      ⚠️ <strong>Méthode</strong> — Rendement = dividende annuel indiqué par CNBC ÷ dernier cours, tel que publié par CNBC (catégorie 2 : donnée publiée par un tiers). Si l'historique Yahoo redevient accessible, l'appli repasse automatiquement au calcul « dividendes détachés sur 365 jours ÷ cours ». Un dividende exceptionnel fausse ces ratios. « Dernier détachement » : Je ne sais pas tant que Yahoo est bloqué. Les dates futures ne viennent d'aucune de ces sources : elles proviennent de l'agenda manuel sourcé ci-dessus (statut indiqué pour chaque ligne). « Dernier détachement » = date ex-dividende, pas date de paiement. Vérifiez auprès de votre courtier avant toute décision.
+      ⚠️ <strong>Méthode</strong> — Rendement au jour J = <b>calcul</b> : dividende annuel indiqué par CNBC (catégorie 2 : donnée publiée par un tiers) ÷ cours du jour (CNBC, différé, heure affichée). Si l'historique Yahoo redevient accessible, l'appli repasse automatiquement au calcul « dividendes détachés sur 365 jours ÷ cours ». Un dividende exceptionnel fausse ces ratios. « Dernier détachement » : Je ne sais pas tant que Yahoo est bloqué. Les dates futures ne viennent d'aucune de ces sources : elles proviennent de l'agenda manuel sourcé ci-dessus (statut indiqué pour chaque ligne). « Dernier détachement » = date ex-dividende, pas date de paiement. Vérifiez auprès de votre courtier avant toute décision.
     </div>
   </div>
 
@@ -1636,9 +1636,11 @@ async function fetchYahoo(d){
     let ttm=ttmList.reduce((s,x)=>s+x.amount,0);
     // Sans historique Yahoo : dividende annuel indiqué par CNBC (pas de date de détachement)
     if(!divs.length&&m.annualDividend!=null){
-      return {...d,ok:true,price:m.regularMarketPrice,priceTime:(m.regularMarketTime||0)*1000,currency:m.currency==='GBp'?'GBP':(m.currency||''),
-        last:null,lastAmount:null,ttm:m.annualDividend,nbTTM:null,srcDiv:'CNBC',
-        rendement:m.dividendYield!=null?m.dividendYield:(m.regularMarketPrice&&m.annualDividend?m.annualDividend/m.regularMarketPrice*100:null)};
+      const k=m.currency==='GBp'?100:1;
+      return {...d,ok:true,price:m.regularMarketPrice/k,priceTime:(m.regularMarketTime||0)*1000,currency:m.currency==='GBp'?'GBP':(m.currency||''),
+        last:null,lastAmount:null,ttm:m.annualDividend/k,nbTTM:null,srcDiv:'CNBC',
+        // calcul : dividende annuel ÷ cours du jour (mêmes unités)
+        rendement:m.regularMarketPrice?m.annualDividend/m.regularMarketPrice*100:null};
     }
     const price=m.regularMarketPrice;
     let cur=m.currency||''; let px=price, amt=ttm, last=divs[0]||null;
@@ -1719,11 +1721,13 @@ function renderDividends(warn){
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
           <div>
             <div style="font-weight:700;font-size:13px;color:var(--text)">${d.name}<span style="font-size:10px;color:var(--muted);font-weight:400"> ${d.ticker}</span></div>
-            <div style="font-size:10px;color:var(--muted);margin-top:2px">${d.index} · ${d.secteur}${d.ok?(d.srcDiv?' · source CNBC (dividende annuel indiqué)':` · ${d.nbTTM} versement(s) sur 12 mois`):''}</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:2px">${d.index} · ${d.secteur}${d.ok?(d.srcDiv?' · calcul : dividende annuel CNBC ÷ cours du jour':` · ${d.nbTTM} versement(s) sur 12 mois`):''}</div>
           </div>
           <div style="text-align:right;flex-shrink:0">
             <div style="font-size:18px;font-weight:700;color:${rdtColor}">${d.rendement==null?'—':f(d.rendement)+'%'}</div>
-            <div style="font-size:10px;color:var(--muted)">${d.srcDiv?'rdt indiqué (CNBC)':'rdt 12 mois glissants'}</div>
+            <div style="font-size:10px;color:var(--muted)">${d.srcDiv?'rdt au cours du jour':'rdt 12 mois glissants'}</div>
+            <div style="font-size:12px;font-weight:700;margin-top:3px">${d.price!=null?f(d.price)+' '+d.currency:'—'}</div>
+            <div style="font-size:9px;color:var(--muted)">cours${d.priceTime?' du '+new Date(d.priceTime).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Paris'}):''}</div>
           </div>
         </div>
         ${d.ok?`
@@ -1765,7 +1769,9 @@ async function fetchQuote(v){
     let price=m.regularMarketPrice, cur=m.currency||'EUR';
     if(cur==='GBp'){price=price/100;cur='GBP';}
     return {...v,ok:true,price,cur,time:(m.regularMarketTime||0)*1000,src:({google:'Google Finance',cnbc:'CNBC',boursorama:'Boursorama'})[m.source]||'Yahoo',
-      chg:prev?(m.regularMarketPrice/prev-1)*100:null, prev};
+      chg:prev?(m.regularMarketPrice/prev-1)*100:null, prev,
+      divA:m.annualDividend!=null?(cur==='GBP'?m.annualDividend/100:m.annualDividend):null,
+      rdtJ:m.annualDividend!=null&&m.regularMarketPrice?m.annualDividend/m.regularMarketPrice*100:null};
   }catch(e){return {...v,ok:false};}
 }
 
@@ -1781,6 +1787,7 @@ function renderMesQuotes(qs){
       <div style="font-size:9px;color:var(--muted)">${code} · ${q.env}${bourso}</div>
       ${q.ok?`<div style="font-size:16px;font-weight:700;margin-top:2px">${f(q.price)} ${sym[q.cur]||q.cur}</div>
       <div style="font-size:11px;font-weight:600;color:${col}">${q.chg==null?'—':(q.chg>=0?'▲ +':'▼ ')+q.chg.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' %'} <span style="font-weight:400;color:var(--muted);font-size:9px">vs veille</span></div>
+      <div style="font-size:10px;margin-top:2px;color:var(--text2)" title="Calcul : dividende annuel indiqué par CNBC ÷ cours du jour">${q.rdtJ!=null?`Rdt J <b style="color:${rendementColor(q.rdtJ)}">${q.rdtJ.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})} %</b> <span style="color:var(--muted)">(div. ${q.divA.toLocaleString('fr-FR',{maximumFractionDigits:3})} ${sym[q.cur]||q.cur})</span>`:'<span style="color:var(--muted)">Rdt J : Je ne sais pas</span>'}</div>
       <div style="font-size:9px;color:var(--muted)">${new Date(q.time).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Paris'})} · ${q.src}</div>`
       :`<div style="font-size:11px;color:var(--muted);margin-top:4px">Cours : Je ne sais pas</div>`}
     </div>`;};
