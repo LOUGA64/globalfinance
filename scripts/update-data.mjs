@@ -21,7 +21,7 @@ export function readConfig(html) {
 }
 
 // ── 2. Parseur RSS/Atom (identique à celui de la page) ──
-export function isFeed(xml) { return typeof xml === 'string' && /<(rss|feed|rdf)[\s>]/i.test(xml); }
+export function isFeed(xml) { return typeof xml === 'string' && /<(rss|feed|rdf:RDF)[\s>]/i.test(xml); }
 export function parseRSS(xml) {
   const items = [];
   if (!isFeed(xml)) return items;
@@ -150,6 +150,35 @@ async function fetchGoogle(code) {
   } catch { gfin.status.err = (gfin.status.err || 0) + 1; return null; }
 }
 
+// ── Diagnostic : teste plusieurs sources de cours depuis le serveur (résultat dans meta.diag) ──
+async function probe(name, url, headers = {}) {
+  const t = Date.now();
+  try {
+    const r = await fetch(url, { headers: { 'User-Agent': UA, 'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8', ...headers }, signal: AbortSignal.timeout(15000), redirect: 'follow' });
+    const body = await r.text();
+    const pick = re => { const m = body.match(re); return m ? m[0].slice(0, 220) : null; };
+    return { name, status: r.status, ms: Date.now() - t, len: body.length, finalUrl: r.url.slice(0, 120),
+      title: (body.match(/<title>([^<]{0,120})/i) || [])[1] || null, head: body.slice(0, 160).replace(/\s+/g, ' '),
+      hits: { lastPrice: pick(/data-last-price[^>]{0,150}/), prevClose: pick(/Previous close[\s\S]{0,200}/i), consent: /consent\.google|before you continue|avant d'accéder/i.test(body),
+        ftValue: pick(/mod-ui-data-list__value[^<]{0,40}<?[^<]{0,40}/), json: pick(/"(c|close|last|regularMarketPrice)"\s*:\s*[\d.]+/) } };
+  } catch (e) { return { name, error: String(e.message || e).slice(0, 100), ms: Date.now() - t }; }
+}
+async function diagnostics() {
+  const P = [
+    ['google-en', 'https://www.google.com/finance/quote/BNP:EPA?hl=en', { Cookie: 'CONSENT=YES+cb' }],
+    ['google-fr', 'https://www.google.com/finance/quote/BNP:EPA?hl=fr'],
+    ['boursorama-ticks', 'https://www.boursorama.com/bourse/action/graph/ws/GetTicksEOD?symbol=1rPBNP&length=5&period=0&guid='],
+    ['boursorama-update', 'https://www.boursorama.com/bourse/action/graph/ws/UpdateCharts?symbol=1rPBNP&period=-1'],
+    ['ft', 'https://markets.ft.com/data/equities/tearsheet/summary?s=BNP:PAR'],
+    ['stooq', 'https://stooq.com/q/l/?s=bnp.fr&f=sd2t2ohlcp&h&e=csv'],
+    ['euronext-quote', 'https://live.euronext.com/en/ajax/getDetailedQuote/FR0000131104-XPAR'],
+    ['yahoo-spark', 'https://query1.finance.yahoo.com/v7/finance/spark?symbols=BNP.PA&range=5d&interval=1d'],
+    ['cnbc', 'https://quote.cnbc.com/quote-html-webservice/restQuote/symbolType/symbol?symbols=BNP-FR&requestMethod=itv&noform=1&partnerId=2&fund=1&exthrs=1&output=json'],
+    ['marketwatch', 'https://www.marketwatch.com/investing/stock/bnp?countrycode=fr'],
+  ];
+  return Promise.all(P.map(([n, u, h]) => probe(n, u, h)));
+}
+
 export async function main() {
   const html = await readFile(new URL('index.html', ROOT), 'utf8');
   const cfg = readConfig(html);
@@ -194,6 +223,7 @@ export async function main() {
   for (const a of toTr) if (trMap.has(a.title)) a.titleFr = trMap.get(a.title);
 
   // Cours : Yahoo (session) → Google Finance (cours du jour, sans historique de dividendes) → valeur précédente
+  const diag = await diagnostics();
   await yahooSession();
   const gcode = new Map(cfg.tickers.map(x => [x.t, x.g]));
   const charts = {}; let yahooOk = 0, yahooStale = 0, googleOk = 0;
@@ -212,6 +242,7 @@ export async function main() {
 
   const generated = new Date().toISOString();
   const meta = { generated, feedsTotal: cfg.feeds.length, feedsOk, feedsStale, yahooTotal: cfg.yahoo.length, yahooOk: yahooOk + googleOk, yahooStale,
+    diag,
     prices: { yahoo: yahooOk, google: googleOk, yahooSession: yahoo.session, yahooHttp: yahoo.status, googleHttp: gfin.status },
     translated: trMap.size, translationsReused: prevTr.size, translationFailed: trFail,
     durationMs: Date.now() - t0, failures };
