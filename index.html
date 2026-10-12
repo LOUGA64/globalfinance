@@ -336,7 +336,7 @@
 
     <div class="infobox" style="border-left:3px solid #10b981;background:linear-gradient(135deg,rgba(16,185,129,.07),rgba(5,150,105,.04))">
       <strong>💰 Calendrier Dividendes — CAC 40 · SBF 120 · Europe</strong><br>
-      <span style="font-size:11px">Cours et dividendes détachés en direct (Yahoo Finance) · Rendement sur 12 mois glissants · données serveur rafraîchies toutes les 15 min</span>
+      <span style="font-size:11px">Cours et dividende annuel indiqué par CNBC (Yahoo, qui donnait l'historique des détachements, bloque les serveurs GitHub) · données serveur rafraîchies toutes les 15 min</span>
     </div>
 
     <!-- Filtres -->
@@ -367,7 +367,7 @@
     <div id="divList"></div>
 
     <div style="font-size:10px;color:var(--muted);margin-top:16px;padding:10px;background:var(--surface);border-radius:6px;border:1px solid var(--border)">
-      ⚠️ <strong>Méthode</strong> — Rendement = somme des dividendes détachés sur les 365 derniers jours ÷ dernier cours (Yahoo Finance). Un dividende exceptionnel ou une fréquence modifiée fausse ce ratio. Les dates futures ne viennent pas de Yahoo : elles proviennent de l'agenda manuel sourcé ci-dessus (statut indiqué pour chaque ligne). « Dernier détachement » = date ex-dividende, pas date de paiement. Vérifiez auprès de votre courtier avant toute décision.
+      ⚠️ <strong>Méthode</strong> — Rendement = dividende annuel indiqué par CNBC ÷ dernier cours, tel que publié par CNBC (catégorie 2 : donnée publiée par un tiers). Si l'historique Yahoo redevient accessible, l'appli repasse automatiquement au calcul « dividendes détachés sur 365 jours ÷ cours ». Un dividende exceptionnel fausse ces ratios. « Dernier détachement » : Je ne sais pas tant que Yahoo est bloqué. Les dates futures ne viennent d'aucune de ces sources : elles proviennent de l'agenda manuel sourcé ci-dessus (statut indiqué pour chaque ligne). « Dernier détachement » = date ex-dividende, pas date de paiement. Vérifiez auprès de votre courtier avant toute décision.
     </div>
   </div>
 
@@ -376,7 +376,7 @@
   <div class="tab-content" id="tab-mes">
     <div class="infobox" style="border-left:3px solid var(--gold)">
       <strong>⭐ Mes valeurs — suivi en continu</strong><br>
-      <span style="font-size:11px">Liste issue du relevé PEA + CTO du 07/10/2026 (noms uniquement, aucune quantité ni montant — la page est publique) · Cours Yahoo Finance · Actualités 7 jours (Google News) · Actualisation auto 15 min</span>
+      <span style="font-size:11px">Liste issue du relevé PEA + CTO du 07/10/2026 (noms uniquement, aucune quantité ni montant — la page est publique) · Cours CNBC (Boursorama en secours), pré-chargés toutes les 15 min · Actualités 7 jours (Google News) · Actualisation auto 15 min</span>
     </div>
     <div class="sh">
       <div class="st">Portefeuille suivi</div>
@@ -784,7 +784,7 @@ const REG_FEEDS={
   amf:'https://news.google.com/rss/search?q=site%3Aamf-france.org%20when%3A14d&hl=fr&gl=FR&ceid=FR:fr',
   amfGN:GNS+'%22Autorit%C3%A9+des+march%C3%A9s+financiers%22+OR+%22franchissement+de+seuil%22+when:14d&hl=fr&gl=FR&ceid=FR:fr',
   sec8k:'https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=8-K&dateb=&owner=include&count=20&search_text=&output=atom',
-  secGN:GNS+'%22SEC+filing%22+OR+%228-K%22+OR+%2213D%22+when:7d&hl=en-US&gl=US&ceid=US:en',
+  secGN:GNS+'SEC+filing+when:3d&hl=en-US&gl=US&ceid=US:en',
 };
 const OPA_FEEDS={
   fr:GNS+'OPA+OR+%22offre+publique%22+OR+%22franchissement+de+seuil%22+OR+%22projet+de+rachat%22+when:7d&hl=fr&gl=FR&ceid=FR:fr',
