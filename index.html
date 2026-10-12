@@ -1725,7 +1725,7 @@ function renderDividends(warn){
           </div>
           <div style="text-align:right;flex-shrink:0">
             <div style="font-size:18px;font-weight:700;color:${rdtColor}">${d.rendement==null?'—':f(d.rendement)+'%'}</div>
-            <div style="font-size:10px;color:var(--muted)">${d.srcDiv?'rdt au cours du jour':'rdt 12 mois glissants'}</div>
+            <div style="font-size:10px;color:var(--muted)">${d.srcDiv?'rdt au cours du jour':'rdt 12 mois glissants'}</div>${d.rendement>9?'<div style="font-size:9px;color:var(--red);font-weight:700" title="Le dividende annuel inclut peut-être un dividende exceptionnel">⚠ &gt; 9 % : à vérifier</div>':''}
             <div style="font-size:12px;font-weight:700;margin-top:3px">${d.price!=null?f(d.price)+' '+d.currency:'—'}</div>
             <div style="font-size:9px;color:var(--muted)">cours${d.priceTime?' du '+new Date(d.priceTime).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Paris'}):''}</div>
           </div>
@@ -1787,7 +1787,7 @@ function renderMesQuotes(qs){
       <div style="font-size:9px;color:var(--muted)">${code} · ${q.env}${bourso}</div>
       ${q.ok?`<div style="font-size:16px;font-weight:700;margin-top:2px">${f(q.price)} ${sym[q.cur]||q.cur}</div>
       <div style="font-size:11px;font-weight:600;color:${col}">${q.chg==null?'—':(q.chg>=0?'▲ +':'▼ ')+q.chg.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' %'} <span style="font-weight:400;color:var(--muted);font-size:9px">vs veille</span></div>
-      <div style="font-size:10px;margin-top:2px;color:var(--text2)" title="Calcul : dividende annuel indiqué par CNBC ÷ cours du jour">${q.rdtJ!=null?`Rdt J <b style="color:${rendementColor(q.rdtJ)}">${q.rdtJ.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})} %</b> <span style="color:var(--muted)">(div. ${q.divA.toLocaleString('fr-FR',{maximumFractionDigits:3})} ${sym[q.cur]||q.cur})</span>`:'<span style="color:var(--muted)">Rdt J : Je ne sais pas</span>'}</div>
+      <div style="font-size:10px;margin-top:2px;color:var(--text2)" title="Calcul : dividende annuel indiqué par CNBC ÷ cours du jour">${q.rdtJ!=null?`Rdt J <b style="color:${rendementColor(q.rdtJ)}">${q.rdtJ.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})} %</b> <span style="color:var(--muted)">(div. ${q.divA.toLocaleString('fr-FR',{maximumFractionDigits:3})} ${sym[q.cur]||q.cur})</span>${q.rdtJ>9?' <span title="Rendement supérieur à 9 % : le dividende annuel CNBC inclut peut-être un dividende exceptionnel — à vérifier" style="color:var(--red);font-weight:700">⚠ à vérifier</span>':''}`:'<span style="color:var(--muted)">Rdt J : Je ne sais pas</span>'}</div>
       <div style="font-size:9px;color:var(--muted)">${new Date(q.time).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Paris'})} · ${q.src}</div>`
       :`<div style="font-size:11px;color:var(--muted);margin-top:4px">Cours : Je ne sais pas</div>`}
     </div>`;};
