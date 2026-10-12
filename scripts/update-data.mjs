@@ -198,6 +198,32 @@ async function fetchBourso(t) {
   } catch { return null; }
 }
 
+
+// ── DIAGNOSTIC TEMPORAIRE : sources de dividendes (détachements passés) ──
+async function divDiag() {
+  const out = [];
+  const P = [
+    ['bourso-cours', 'https://www.boursorama.com/cours/1rPCOFA/'],
+    ['bourso-societe', 'https://www.boursorama.com/cours/societe/chiffres-cles/1rPCOFA/'],
+    ['bourso-profil', 'https://www.boursorama.com/cours/societe/profil/1rPCOFA/'],
+    ['zb-search', 'https://www.zonebourse.com/recherche/?q=FR0010667147'],
+    ['zb-agenda-bnp', 'https://www.zonebourse.com/cours/action/BNP-PARIBAS-SA-4618/agenda/'],
+    ['divaltis', 'https://divaltis.com/euronext-paris/dividendes-coface/'],
+    ['investir', 'https://investir.lesechos.fr/cours/action-coface,xpar,cofa,fr0010667147,isin.html'],
+  ];
+  for (const [name, url] of P) {
+    try {
+      const r = await fetch(url, { headers: { 'User-Agent': UA, 'Accept-Language': 'fr-FR,fr;q=0.9' }, signal: AbortSignal.timeout(15000), redirect: 'follow' });
+      const t = await r.text();
+      const txt = t.replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/&nbsp;|&#160;/g, ' ').replace(/\s+/g, ' ');
+      const hits = [...txt.matchAll(/.{0,120}(dividende|détachement|Détachement|coupon).{0,160}/gi)].slice(0, 6).map(m => m[0]);
+      const links = [...t.matchAll(/href="([^"]*(?:agenda|dividende)[^"]*)"/gi)].slice(0, 5).map(m => m[1]);
+      out.push({ name, status: r.status, finalUrl: r.url, len: t.length, hits, links });
+    } catch (e) { out.push({ name, error: String(e).slice(0, 120) }); }
+  }
+  return out;
+}
+
 export async function main() {
   const html = await readFile(new URL('index.html', ROOT), 'utf8');
   const cfg = readConfig(html);
@@ -242,6 +268,7 @@ export async function main() {
   for (const a of toTr) if (trMap.has(a.title)) a.titleFr = trMap.get(a.title);
 
   // Cours : Yahoo (session) → Google Finance (cours du jour, sans historique de dividendes) → valeur précédente
+  const divdiag = await divDiag();
   await yahooSession();
   const allT = [...new Set(cfg.yahoo.map(u => decodeURIComponent(u.split('/chart/')[1].split('?')[0])))];
   const cnbcMap = await fetchCNBC(allT);
@@ -266,6 +293,7 @@ export async function main() {
 
   const generated = new Date().toISOString();
   const meta = { generated, feedsTotal: cfg.feeds.length, feedsOk, feedsStale, yahooTotal: cfg.yahoo.length, yahooOk: yahooOk + googleOk + cnbcOk + boursoOk, yahooStale,
+    divdiag,
     prices: { cnbc: cnbcOk, boursorama: boursoOk, cnbcHttp: cnbc.status, cnbcUnresolved: cnbc.unresolved, yahoo: yahooOk, google: googleOk, yahooSession: yahoo.session, yahooHttp: yahoo.status, googleHttp: gfin.status },
     translated: trMap.size, translationsReused: prevTr.size, translationFailed: trFail,
     durationMs: Date.now() - t0, failures };
