@@ -625,8 +625,8 @@ const RSS_SOURCES = [
   {url:'https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=en-US&gl=US&ceid=US:en', source:'Google News Business US', country:'us', lang:'en'},
   // ── AP News — agence mondiale libre, remplace Bloomberg ──
   // ── Yahoo Finance — remplace WSJ/Bloomberg ──
-  {url:'https://finance.yahoo.com/news/rssindex',                                source:'Yahoo Finance',           country:'us', lang:'en'},
-  {url:'https://finance.yahoo.com/rss/topstories',                               source:'Yahoo Finance Top',       country:'us', lang:'en'},
+  {url:'https://news.google.com/rss/search?q=site%3Afinance.yahoo.com%20when%3A3d&hl=en-US&gl=US&ceid=US:en',                                source:'Yahoo Finance',           country:'us', lang:'en'},
+  {url:'https://news.google.com/rss/search?q=site%3Afinance.yahoo.com%20stocks%20when%3A3d&hl=en-US&gl=US&ceid=US:en',                               source:'Yahoo Finance Top',       country:'us', lang:'en'},
   // ── Investing.com — temps réel, remplace Bloomberg Markets ──
   {url:'https://www.investing.com/rss/news_25.rss',                              source:'Investing.com',           country:'us', lang:'en'},
   {url:'https://www.investing.com/rss/news_14.rss',                              source:'Investing Stocks',        country:'us', lang:'en'},
@@ -648,10 +648,10 @@ const RSS_SOURCES = [
   // ── The Economist — RSS ouvert sur certaines sections ──
   {url:'https://www.economist.com/finance-and-economics/rss.xml',                source:'The Economist',           country:'gb', lang:'en'},
   // ── Barron's — investisseurs, remplace WSJ ──
-  {url:'https://www.barrons.com/xml/rss/3_7566.xml',                             source:'Barron\'s',               country:'us', lang:'en'},
+  {url:'https://news.google.com/rss/search?q=site%3Abarrons.com%20when%3A3d&hl=en-US&gl=US&ceid=US:en',                             source:'Barron\'s',               country:'us', lang:'en'},
   // ════ ASIE ════
   // ── Caixin — Chine indépendante ──
-  {url:'https://www.caixinglobal.com/rss/home.xml',                              source:'Caixin Global 🇨🇳',       country:'cn', lang:'en', fixed:true},
+  {url:'https://news.google.com/rss/search?q=site%3Acaixinglobal.com%20when%3A3d&hl=en-HK&gl=HK&ceid=HK:en',                              source:'Caixin Global 🇨🇳',       country:'cn', lang:'en', fixed:true},
   // ── SCMP — Hong Kong ──
   {url:'https://www.scmp.com/rss/91/feed',                                       source:'S. China Morning Post 🇭🇰', country:'cn', lang:'en', fixed:true},
   // ── Nikkei Asia — Japon ──
@@ -660,41 +660,41 @@ const RSS_SOURCES = [
   {url:'https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms',   source:'Economic Times 🇮🇳',      country:'in', lang:'en', fixed:true},
   {url:'https://economictimes.indiatimes.com/news/economy/rssfeeds/1373380680.cms', source:'ET Economy 🇮🇳',      country:'in', lang:'en', fixed:true},
   // ── Korea Herald — Corée ──
-  {url:'https://www.koreaherald.com/common/rss_xml.php?ct=102',                  source:'Korea Herald 🇰🇷',        country:'jp', lang:'en'},
+  {url:'https://news.google.com/rss/search?q=site%3Akoreaherald.com%20business%20when%3A3d&hl=en-US&gl=US&ceid=US:en',                  source:'Korea Herald 🇰🇷',        country:'jp', lang:'en'},
   // ════ MOYEN-ORIENT ════
-  {url:'https://www.arabnews.com/cat/12/rss.xml',                                source:'Arab News 🇸🇦',           country:'us', lang:'en'},
+  {url:'https://news.google.com/rss/search?q=site%3Aarabnews.com%20economy%20when%3A3d&hl=en-US&gl=US&ceid=US:en',                                source:'Arab News 🇸🇦',           country:'us', lang:'en'},
   // ════ EUROPE CONTINENTALE ════
-  {url:'https://www.handelsblatt.com/rss',                                       source:'Handelsblatt 🇩🇪',        country:'de', lang:'de', fixed:true},
-  {url:'https://www.expansion.com/rss/2.0/portada.xml',                         source:'Expansión 🇪🇸',           country:'es', lang:'es', fixed:true},
-  {url:'https://www.ilsole24ore.com/rss/economia--finanza.xml',                  source:'Il Sole 24 Ore 🇮🇹',      country:'it', lang:'it', fixed:true},
+  {url:'https://news.google.com/rss/search?q=site%3Ahandelsblatt.com%20when%3A3d&hl=de&gl=DE&ceid=DE:de',                                       source:'Handelsblatt 🇩🇪',        country:'de', lang:'de', fixed:true},
+  {url:'https://news.google.com/rss/search?q=site%3Aexpansion.com%20when%3A3d&hl=es&gl=ES&ceid=ES:es',                         source:'Expansión 🇪🇸',           country:'es', lang:'es', fixed:true},
+  {url:'https://news.google.com/rss/search?q=site%3Ailsole24ore.com%20finanza%20when%3A3d&hl=it&gl=IT&ceid=IT:it',                  source:'Il Sole 24 Ore 🇮🇹',      country:'it', lang:'it', fixed:true},
   // ════ RÉGLEMENTAIRES ════
-  {url:'https://www.amf-france.org/fr/rss',                                      source:'AMF France',              country:'fr', lang:'fr', reg:true},
+  {url:'https://news.google.com/rss/search?q=site%3Aamf-france.org%20when%3A14d&hl=fr&gl=FR&ceid=FR:fr',                                      source:'AMF France',              country:'fr', lang:'fr', reg:true},
   {url:'https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=8-K&dateb=&owner=include&count=10&search_text=&output=atom', source:'SEC EDGAR 8-K', country:'us', lang:'en', reg:true},
   {url:'https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=13-D&dateb=&owner=include&count=10&search_text=&output=atom', source:'SEC EDGAR 13-D', country:'us', lang:'en', reg:true},
   // ════ FRANCE ════
-  {url:'https://www.lesechos.fr/rss/rss_finance.xml',                            source:'Les Échos',               country:'fr', lang:'fr'},
-  {url:'https://www.latribune.fr/rss.html',                                      source:'La Tribune',              country:'fr', lang:'fr'},
-  {url:'https://bfmbusiness.bfmtv.com/rss/info/flux-rss/flux-toutes-les-actualites/', source:'BFM Business',      country:'fr', lang:'fr'},
+  {url:'https://news.google.com/rss/search?q=site%3Alesechos.fr%20finance%20when%3A3d&hl=fr&gl=FR&ceid=FR:fr',                            source:'Les Échos',               country:'fr', lang:'fr'},
+  {url:'https://news.google.com/rss/search?q=site%3Alatribune.fr%20%C3%A9conomie%20when%3A3d&hl=fr&gl=FR&ceid=FR:fr',                                      source:'La Tribune',              country:'fr', lang:'fr'},
+  {url:'https://news.google.com/rss/search?q=site%3Abfmtv.com%20%C3%A9conomie%20when%3A3d&hl=fr&gl=FR&ceid=FR:fr', source:'BFM Business',      country:'fr', lang:'fr'},
 ];
 
 const AI_RSS_SOURCES=[
   {url:'https://www.technologyreview.com/feed/',                              source:'MIT Technology Review', lang:'en'},
-  {url:'https://www.wired.com/feed/tag/artificial-intelligence/rss',          source:'Wired AI',              lang:'en'},
-  {url:'https://venturebeat.com/category/ai/feed/',                           source:'VentureBeat AI',        lang:'en'},
+  {url:'https://news.google.com/rss/search?q=site%3Awired.com%20AI%20when%3A3d&hl=en-US&gl=US&ceid=US:en',          source:'Wired AI',              lang:'en'},
+  {url:'https://news.google.com/rss/search?q=site%3Aventurebeat.com%20AI%20when%3A3d&hl=en-US&gl=US&ceid=US:en',                           source:'VentureBeat AI',        lang:'en'},
   {url:'https://techcrunch.com/category/artificial-intelligence/feed/',       source:'TechCrunch AI',         lang:'en'},
   {url:'https://www.theverge.com/rss/ai-artificial-intelligence/index.xml',   source:'The Verge AI',          lang:'en'},
   {url:'https://feeds.feedburner.com/blogspot/gJZg',                          source:'Google AI Blog',        lang:'en'},
-  {url:'https://openai.com/news/rss',                                          source:'OpenAI Blog',           lang:'en'},
+  {url:'https://news.google.com/rss/search?q=site%3Aopenai.com%20when%3A3d&hl=en-US&gl=US&ceid=US:en',                                          source:'OpenAI Blog',           lang:'en'},
 ];
 
 // Sources RSS spécialisées valeurs françaises
 const FR_RSS_SOURCES = [
-  {url:'https://www.boursorama.com/rss/actus-societes',          source:'Boursorama Sociétés',  lang:'fr'},
-  {url:'https://www.boursorama.com/rss/marches',                 source:'Boursorama Marchés',   lang:'fr'},
-  {url:'https://www.abcbourse.com/rss/news.xml',                 source:'ABC Bourse',           lang:'fr'},
-  {url:'https://www.lesechos.fr/rss/rss_bourse.xml',            source:'Les Échos Bourse',     lang:'fr'},
-  {url:'https://www.latribune.fr/rss/rubriques/entreprises.html',source:'La Tribune Entreprises',lang:'fr'},
-  {url:'https://www.zonebourse.com/rss/actualites.xml',          source:'Zonebourse',           lang:'fr'},
+  {url:'https://news.google.com/rss/search?q=site%3Aboursorama.com%20soci%C3%A9t%C3%A9s%20when%3A3d&hl=fr&gl=FR&ceid=FR:fr',          source:'Boursorama Sociétés',  lang:'fr'},
+  {url:'https://news.google.com/rss/search?q=site%3Aboursorama.com%20march%C3%A9s%20when%3A3d&hl=fr&gl=FR&ceid=FR:fr',                 source:'Boursorama Marchés',   lang:'fr'},
+  {url:'https://news.google.com/rss/search?q=site%3Aabcbourse.com%20when%3A3d&hl=fr&gl=FR&ceid=FR:fr',                 source:'ABC Bourse',           lang:'fr'},
+  {url:'https://news.google.com/rss/search?q=site%3Alesechos.fr%20bourse%20when%3A3d&hl=fr&gl=FR&ceid=FR:fr',            source:'Les Échos Bourse',     lang:'fr'},
+  {url:'https://news.google.com/rss/search?q=site%3Alatribune.fr%20entreprises%20when%3A3d&hl=fr&gl=FR&ceid=FR:fr',source:'La Tribune Entreprises',lang:'fr'},
+  {url:'https://news.google.com/rss/search?q=site%3Azonebourse.com%20actions%20when%3A3d&hl=fr&gl=FR&ceid=FR:fr',          source:'Zonebourse',           lang:'fr'},
 ];
 
 const DIVIDENDS = [
@@ -772,13 +772,16 @@ const MES_VALEURS=[
   {name:'EssilorLuxottica',   ticker:'EL.PA',    env:'Suivi',   q:'"EssilorLuxottica"',         k:['essilorluxottica']},
   {name:'Compagnie des Alpes',ticker:'CDA.PA',   env:'Suivi',   q:'"Compagnie des Alpes"',      k:['compagnie des alpes']},
 ];
+const GF_EXCH={PA:'EPA',AS:'AMS',MI:'BIT',OL:'OSL',HE:'HEL',L:'LON',DE:'ETR',MC:'BME',SW:'SWX',CO:'CPH'};
+const GF_OVERRIDE={'STMPA.PA':'STMPA:EPA','STLAP.PA':'STLAP:EPA','CHMI':'CHMI:NYSE','SFL':'SFL:NYSE','NOVO-B.CO':'NOVO-B:CPH'};
+function googleCode(t){if(GF_OVERRIDE[t])return GF_OVERRIDE[t];const [c,x]=t.split('.');return x&&GF_EXCH[x]?c+':'+GF_EXCH[x]:c+':NASDAQ';}
 const MES_GROUPS=[['PEA','PEA (dont lignes aussi au CTO)'],['CTO','CTO'],['Suivi','Suivies — absentes du relevé du 07/10/2026']];
 const mesGroupOf=v=>v.env.startsWith('PEA')?'PEA':v.env;
 
 // Flux utilisés par les onglets AMF/SEC, OPA, IA, Valeurs FR
 const gnFR=q=>GNS+encodeURIComponent(q)+'&hl=fr&gl=FR&ceid=FR:fr';
 const REG_FEEDS={
-  amf:'https://www.amf-france.org/fr/rss',
+  amf:'https://news.google.com/rss/search?q=site%3Aamf-france.org%20when%3A14d&hl=fr&gl=FR&ceid=FR:fr',
   amfGN:GNS+'%22Autorit%C3%A9+des+march%C3%A9s+financiers%22+OR+%22franchissement+de+seuil%22+when:14d&hl=fr&gl=FR&ceid=FR:fr',
   sec8k:'https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=8-K&dateb=&owner=include&count=20&search_text=&output=atom',
   secGN:GNS+'%22SEC+filing%22+OR+%228-K%22+OR+%2213D%22+when:7d&hl=en-US&gl=US&ceid=US:en',
@@ -804,7 +807,6 @@ function ALL_FEEDS(){
   Object.values(REG_FEEDS).forEach(u=>L.push({url:u,lang:u.includes('hl=fr')||u.includes('amf-france')?'fr':'en'}));
   Object.values(OPA_FEEDS).forEach(u=>L.push({url:u,lang:u.includes('hl=fr')?'fr':'en'}));
   [AI_GN_FEED,FR_GN_FEED,FR_RESULTS_FEED].forEach(u=>L.push({url:u,lang:'fr'}));
-  mesChunks().forEach(g=>L.push({url:mesGroupUrl(g),lang:'fr'}));
   MES_VALEURS.forEach(v=>L.push({url:mesSingleUrl(v),lang:'fr'}));
   const seen=new Set();return L.filter(x=>!seen.has(x.url)&&seen.add(x.url));
 }
@@ -812,6 +814,7 @@ function ALL_YAHOO(){
   const L=[...MES_VALEURS.map(v=>yahooQuoteUrl(v.ticker)),...DIVIDENDS.map(d=>yahooDivUrl(d.ticker))];
   return [...new Set(L)];
 }
+function ALL_TICKERS(){return [...new Set([...MES_VALEURS.map(v=>v.ticker),...DIVIDENDS.map(d=>d.ticker)])].map(t=>({t,g:googleCode(t)}));}
 /*@@CONFIG-END@@*/
 
 // ── Helpers ───────────────────────────────────────────
@@ -1111,7 +1114,7 @@ function mapItems(items,src){
 }
 async function fetchRSS(src){
   const cached=SRV.feeds&&SRV.feeds[src.url];
-  if(cached&&cached.length)return mapItems(cached,src);
+  if(Array.isArray(cached))return mapItems(cached,src);
   // Ordre de départ différent selon la source → répartit la charge entre proxies
   const off=[...src.url].reduce((a,c)=>a+c.charCodeAt(0),0)%RSS_PROXIES.length;
   const order=RSS_PROXIES.map((_,i)=>RSS_PROXIES[(i+off)%RSS_PROXIES.length])
@@ -1750,7 +1753,7 @@ async function fetchQuote(v){
     const prev=closes.length>=2?closes[closes.length-2]:null; // clôture de la séance précédente
     let price=m.regularMarketPrice, cur=m.currency||'EUR';
     if(cur==='GBp'){price=price/100;cur='GBP';}
-    return {...v,ok:true,price,cur,time:(m.regularMarketTime||0)*1000,
+    return {...v,ok:true,price,cur,time:(m.regularMarketTime||0)*1000,src:m.source==='google'?'Google Finance':'Yahoo',
       chg:prev?(m.regularMarketPrice/prev-1)*100:null, prev};
   }catch(e){return {...v,ok:false};}
 }
@@ -1767,7 +1770,7 @@ function renderMesQuotes(qs){
       <div style="font-size:9px;color:var(--muted)">${code} · ${q.env}${bourso}</div>
       ${q.ok?`<div style="font-size:16px;font-weight:700;margin-top:2px">${f(q.price)} ${sym[q.cur]||q.cur}</div>
       <div style="font-size:11px;font-weight:600;color:${col}">${q.chg==null?'—':(q.chg>=0?'▲ +':'▼ ')+q.chg.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' %'} <span style="font-weight:400;color:var(--muted);font-size:9px">vs veille</span></div>
-      <div style="font-size:9px;color:var(--muted)">${new Date(q.time).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Paris'})} · Yahoo</div>`
+      <div style="font-size:9px;color:var(--muted)">${new Date(q.time).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Paris'})} · ${q.src}</div>`
       :`<div style="font-size:11px;color:var(--muted);margin-top:4px">Cours : Je ne sais pas</div>`}
     </div>`;};
   document.getElementById('mesQuotes').innerHTML=MES_GROUPS.map(([g,label])=>{
@@ -1810,15 +1813,20 @@ async function loadMesValeurs(){
   document.getElementById('mesList').innerHTML=`<div class="loader"><div class="sp"></div><div>Chargement des cours et actualités de ${MES_VALEURS.length} valeurs…</div></div>`;
   // Requêtes Google News regroupées par 6 valeurs (évite ~50 appels), articles rattachés par mots-clés
   const chunks=mesChunks();
+  // Avec les données serveur : 1 flux par valeur (instantané). Sans : requêtes groupées par 6 via proxy.
+  const perValue=!!SRV.feeds;
   const [qs,res]=await Promise.all([
     runLimited(MES_VALEURS,fetchQuote,4),
-    runLimited(chunks,async grp=>{
-      const items=mapFeed(await fetchFeed(mesGroupUrl(grp)),{});
-      const out=[];
-      items.forEach(a=>grp.forEach(v=>{if(matchVal(v,a.title,a.description||''))out.push({...a,valeur:v.name,source:v.name});}));
-      return out;
-    },3),
+    perValue
+      ? runLimited(MES_VALEURS,async v=>mapFeed(await fetchFeed(mesSingleUrl(v)),{valeur:v.name,source:v.name}).filter(a=>matchVal(v,a.title,a.description||'')),8)
+      : runLimited(chunks,async grp=>{
+          const items=mapFeed(await fetchFeed(mesGroupUrl(grp)),{});
+          const out=[];
+          items.forEach(a=>grp.forEach(v=>{if(matchVal(v,a.title,a.description||''))out.push({...a,valeur:v.name,source:v.name});}));
+          return out;
+        },3),
   ]);
+  if(perValue)MES_VALEURS.forEach(v=>mesSingleDone[v.name]=true);
   mesQuotesCache=qs;
   renderMesQuotes(qs);
   mesNews=sortByDate(dedupeKey(res.flat()));
