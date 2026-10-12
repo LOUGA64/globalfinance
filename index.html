@@ -1628,7 +1628,13 @@ async function fetchYahoo(d){
     const divs=Object.values(r.events?.dividends||{}).map(x=>({amount:x.amount,date:x.date*1000})).sort((a,b)=>b.date-a.date);
     const yearAgo=Date.now()-365*864e5;
     const ttmList=divs.filter(x=>x.date>=yearAgo);
-    const ttm=ttmList.reduce((s,x)=>s+x.amount,0);
+    let ttm=ttmList.reduce((s,x)=>s+x.amount,0);
+    // Sans historique Yahoo : dividende annuel indiqué par CNBC (pas de date de détachement)
+    if(!divs.length&&m.annualDividend!=null){
+      return {...d,ok:true,price:m.regularMarketPrice,priceTime:(m.regularMarketTime||0)*1000,currency:m.currency==='GBp'?'GBP':(m.currency||''),
+        last:null,lastAmount:null,ttm:m.annualDividend,nbTTM:null,srcDiv:'CNBC',
+        rendement:m.dividendYield!=null?m.dividendYield:(m.regularMarketPrice&&m.annualDividend?m.annualDividend/m.regularMarketPrice*100:null)};
+    }
     const price=m.regularMarketPrice;
     let cur=m.currency||''; let px=price, amt=ttm, last=divs[0]||null;
     if(cur==='GBp'){px=price/100;amt=ttm/100;cur='GBP';}
@@ -1645,7 +1651,7 @@ async function loadDividends(force){
       if(c&&Date.now()-c.ts<DIV_TTL){divData=c.items;divStamp=c.ts;renderDividends();return;}}catch(e){}
   }
   divLoading=true;
-  document.getElementById('divList').innerHTML=`<div class="loader"><div class="sp"></div><div>Récupération des cours et dividendes (Yahoo Finance)…</div></div>`;
+  document.getElementById('divList').innerHTML=`<div class="loader"><div class="sp"></div><div>Récupération des cours et dividendes…</div></div>`;
   const res=await runLimited(DIVIDENDS,fetchYahoo,4);
   divLoading=false;
   const okN=res.filter(x=>x.ok).length;
@@ -1692,7 +1698,7 @@ function renderDividends(warn){
 
   const byMonth={};
   data.forEach(d=>{
-    const key=d.last?new Date(d.last.date).toLocaleDateString('fr-FR',{month:'long',year:'numeric',timeZone:'Europe/Paris'}):'Aucun dividende sur 2 ans / donnée indisponible';
+    const key=d.last?new Date(d.last.date).toLocaleDateString('fr-FR',{month:'long',year:'numeric',timeZone:'Europe/Paris'}):(d.srcDiv?'Je ne sais pas (historique indisponible — dividende annuel CNBC)':'Aucun dividende sur 2 ans / donnée indisponible');
     (byMonth[key]=byMonth[key]||[]).push(d);
   });
   for(const [mois,items] of Object.entries(byMonth)){
@@ -1708,18 +1714,18 @@ function renderDividends(warn){
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
           <div>
             <div style="font-weight:700;font-size:13px;color:var(--text)">${d.name}<span style="font-size:10px;color:var(--muted);font-weight:400"> ${d.ticker}</span></div>
-            <div style="font-size:10px;color:var(--muted);margin-top:2px">${d.index} · ${d.secteur}${d.ok?` · ${d.nbTTM} versement(s) sur 12 mois`:''}</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:2px">${d.index} · ${d.secteur}${d.ok?(d.srcDiv?' · source CNBC (dividende annuel indiqué)':` · ${d.nbTTM} versement(s) sur 12 mois`):''}</div>
           </div>
           <div style="text-align:right;flex-shrink:0">
             <div style="font-size:18px;font-weight:700;color:${rdtColor}">${d.rendement==null?'—':f(d.rendement)+'%'}</div>
-            <div style="font-size:10px;color:var(--muted)">rdt 12 mois glissants</div>
+            <div style="font-size:10px;color:var(--muted)">${d.srcDiv?'rdt indiqué (CNBC)':'rdt 12 mois glissants'}</div>
           </div>
         </div>
         ${d.ok?`
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px">
           <div style="background:var(--bg);border-radius:4px;padding:6px;text-align:center"><div style="font-size:12px;font-weight:700">${f(d.lastAmount,3)} ${d.currency}</div><div style="font-size:10px;color:var(--muted)">Dernier montant</div></div>
-          <div style="background:var(--bg);border-radius:4px;padding:6px;text-align:center"><div style="font-size:12px;font-weight:700">${lastDt}</div><div style="font-size:10px;color:var(--muted)">Dernier détachement (ex-date)</div></div>
-          <div style="background:var(--bg);border-radius:4px;padding:6px;text-align:center"><div style="font-size:12px;font-weight:700">${f(d.ttm,3)} ${d.currency}</div><div style="font-size:10px;color:var(--muted)">Total 12 mois</div></div>
+          <div style="background:var(--bg);border-radius:4px;padding:6px;text-align:center"><div style="font-size:12px;font-weight:700">${d.srcDiv&&!d.last?'Je ne sais pas':lastDt}</div><div style="font-size:10px;color:var(--muted)">Dernier détachement (ex-date)</div></div>
+          <div style="background:var(--bg);border-radius:4px;padding:6px;text-align:center"><div style="font-size:12px;font-weight:700">${f(d.ttm,3)} ${d.currency}</div><div style="font-size:10px;color:var(--muted)">${d.srcDiv?'Dividende annuel':'Total 12 mois'}</div></div>
         </div>
         <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--muted)">
           <div>Cours : ${f(d.price)} ${d.currency}${d.priceTime?` (${new Date(d.priceTime).toLocaleDateString('fr-FR')})`:''}</div>
@@ -1753,7 +1759,7 @@ async function fetchQuote(v){
     const prev=closes.length>=2?closes[closes.length-2]:null; // clôture de la séance précédente
     let price=m.regularMarketPrice, cur=m.currency||'EUR';
     if(cur==='GBp'){price=price/100;cur='GBP';}
-    return {...v,ok:true,price,cur,time:(m.regularMarketTime||0)*1000,src:m.source==='google'?'Google Finance':'Yahoo',
+    return {...v,ok:true,price,cur,time:(m.regularMarketTime||0)*1000,src:({google:'Google Finance',cnbc:'CNBC',boursorama:'Boursorama'})[m.source]||'Yahoo',
       chg:prev?(m.regularMarketPrice/prev-1)*100:null, prev};
   }catch(e){return {...v,ok:false};}
 }
