@@ -1115,6 +1115,8 @@ function mapItems(items,src){
 async function fetchRSS(src){
   const cached=SRV.feeds&&SRV.feeds[src.url];
   if(Array.isArray(cached))return mapItems(cached,src);
+  // Données serveur présentes mais ce flux a échoué côté serveur : inutile de passer par les proxies (lents, souvent HS)
+  if(SRV.feeds&&Object.keys(SRV.feeds).length>20)return [];
   // Ordre de départ différent selon la source → répartit la charge entre proxies
   const off=[...src.url].reduce((a,c)=>a+c.charCodeAt(0),0)%RSS_PROXIES.length;
   const order=RSS_PROXIES.map((_,i)=>RSS_PROXIES[(i+off)%RSS_PROXIES.length])
