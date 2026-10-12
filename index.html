@@ -1091,7 +1091,7 @@ async function fetchViaProxy(p,src){
 async function fetchFeed(url){ return fetchRSS({url,source:'',country:'fr',lang:'fr',fixed:true}); }
 // Récupère un texte quelconque (JSON Yahoo…) via les proxies texte
 async function fetchTextViaProxies(url){
-  if(SRV.yahoo&&SRV.yahoo[url])return JSON.stringify(SRV.yahoo[url]);
+  if(SRV.yahoo){ if(SRV.yahoo[url])return JSON.stringify(SRV.yahoo[url]); if(Object.keys(SRV.yahoo).length>20)return null; }
   for(const p of RSS_PROXIES.filter(p=>p.type!=='json2')){
     try{
       const r=await fetch(p.url(url),{signal:AbortSignal.timeout(10000),cache:'no-store'});
@@ -1237,6 +1237,8 @@ function formatPubDate(d){
   return `${jour} ${date} · ${heure}`;
 }
 
+let newsLimit=120;
+function moreNews(){newsLimit+=120;renderNews();}
 function renderNews(){
   const src=document.getElementById('sourceFilter')?.value||'all';
   const f=allNews.filter(a=>
@@ -1252,7 +1254,8 @@ function renderNews(){
     document.getElementById('newsList').innerHTML=`<div class="loader">🔍 Aucun article pour cette source — essayez d'actualiser</div>`;
     return;
   }
-  document.getElementById('newsList').innerHTML=f.map((a,i)=>{
+  const shown=f.slice(0,newsLimit);
+  document.getElementById('newsList').innerHTML=shown.map((a,i)=>{
     const tUrl=a.link&&a.link!='#'?`https://translate.google.com/translate?sl=auto&tl=fr&u=${encodeURIComponent(a.link)}`:'javascript:void(0)';
     const isFr=a.lang==='fr'||FR_SOURCES.includes(a.source);
     const href=isFr?(a.link||'javascript:void(0)'):tUrl;
@@ -1283,10 +1286,10 @@ function renderNews(){
             </span>
           </span>`:''}
       </div>
-    </a>`;}).join('');
+    </a>`;}).join('')+(f.length>shown.length?`<div style="text-align:center;padding:12px"><button onclick="moreNews()" class="pill" style="cursor:pointer">Afficher 120 articles de plus (${shown.length}/${f.length})</button></div>`:'');
 }
 
-function filterBySource(){
+function filterBySource(){newsLimit=120;
   // Filtre immédiat sur les articles déjà chargés, sans recharger les RSS
   renderNews();
   // Met à jour le titre pour indiquer le filtre actif
@@ -1298,19 +1301,19 @@ function filterBySource(){
 document.getElementById('cfilter').addEventListener('click',e=>{
   const p=e.target.closest('.pill');if(!p)return;
   document.querySelectorAll('#cfilter .pill,#wfilter .pill').forEach(x=>x.classList.remove('active'));
-  p.classList.add('active');ac=p.dataset.c;
+  p.classList.add('active');ac=p.dataset.c;newsLimit=120;
   if(allNews.length>0)renderNews(); else loadNews();
 });
 document.getElementById('wfilter').addEventListener('click',e=>{
   const p=e.target.closest('.pill');if(!p)return;
   document.querySelectorAll('#cfilter .pill,#wfilter .pill').forEach(x=>x.classList.remove('active'));
-  p.classList.add('active');ac=p.dataset.c;
+  p.classList.add('active');ac=p.dataset.c;newsLimit=120;
   if(allNews.length>0)renderNews(); else loadNews();
 });
 document.getElementById('tfilter').addEventListener('click',e=>{
   const p=e.target.closest('.tpill');if(!p)return;
   document.querySelectorAll('.tpill').forEach(x=>x.classList.remove('active'));
-  p.classList.add('active');at=p.dataset.t;
+  p.classList.add('active');at=p.dataset.t;newsLimit=120;
   if(allNews.length>0)renderNews(); else loadNews();
 });
 
@@ -1804,7 +1807,7 @@ function renderMesNews(){
   sel.innerHTML=`<option value="all">Toutes les valeurs (${mesNews.length})</option>`+MES_GROUPS.map(([g,label])=>
     `<optgroup label="${label}">`+MES_VALEURS.filter(v=>mesGroupOf(v)===g).map(v=>`<option value="${v.name.replace(/"/g,'&quot;')}">${v.name} (${counts[v.name]||0})</option>`).join('')+'</optgroup>').join('');
   sel.value=mesSel;
-  const items=mesNews.filter(a=>mesSel==='all'||a.valeur===mesSel);
+  const items=mesNews.filter(a=>mesSel==='all'||a.valeur===mesSel).slice(0,mesSel==='all'?150:80);
   document.getElementById('mesList').innerHTML=items.length?items.map((a,i)=>`
     <a class="card" href="${a.link}" target="_blank" rel="noopener" style="animation-delay:${Math.min(i,30)*.02}s;border-left:3px solid var(--gold)">
       <div class="cm"><span class="cs" style="color:var(--gold)">${a.valeur}</span><span class="cd"></span>
