@@ -1262,7 +1262,7 @@ function renderNews(){
   }
   const shown=f.slice(0,newsLimit);
   document.getElementById('newsList').innerHTML=shown.map((a,i)=>{
-    const tUrl=a.link&&a.link!='#'?`https://translate.google.com/translate?sl=auto&tl=fr&u=${encodeURIComponent(a.link)}`:'javascript:void(0)';
+    const tUrl=a.link&&a.link!='#'?trUrl(a.link):'javascript:void(0)';
     const isFr=a.lang==='fr'||FR_SOURCES.includes(a.source);
     const href=isFr?(a.link||'javascript:void(0)'):tUrl;
     return `
@@ -1349,11 +1349,19 @@ async function loadReg(){
   if(!sec.length)document.getElementById('regListSEC').innerHTML=emptyMsg('⛔ Flux SEC injoignables — Je ne sais pas (aucune donnée récupérée).');
 }
 
+// Lien « Lire traduit » : un lien news.google.com non résolu ne passe pas par le proxy
+// Google Traduction (redirection JavaScript → page blanche) ; on l'ouvre alors directement.
+function trUrl(link){
+  if(!link||link==='#')return 'javascript:void(0)';
+  if(/news\.google\./.test(link))return link;
+  return `https://translate.google.com/translate?sl=auto&tl=fr&u=${encodeURIComponent(link)}`;
+}
+
 function renderReg(amf, sec){
   const renderCard=(a,i)=>{
     const isSEC=a.source&&a.source.includes('SEC');
     const isAMF=a.source&&a.source.includes('AMF');
-    const href=(isSEC||isAMF)?a.link:`https://translate.google.com/translate?sl=auto&tl=fr&u=${encodeURIComponent(a.link)}`;
+    const href=(isSEC||isAMF)?a.link:trUrl(a.link);
     return `
     <a class="card reg" href="${href}" target="_blank" rel="noopener" style="animation-delay:${i*.04}s">
       <div class="cm">
@@ -1406,7 +1414,7 @@ async function loadOPA(){
   spin('rbtn3',false);
   if(!opaLive.length){document.getElementById('opaList').innerHTML=emptyMsg('⛔ Aucune source joignable — Je ne sais pas.');return;}
   document.getElementById('opaList').innerHTML=opaLive.map((a,i)=>{
-    const href=a.lang==='fr'?a.link:`https://translate.google.com/translate?sl=auto&tl=fr&u=${encodeURIComponent(a.link)}`;
+    const href=a.lang==='fr'?a.link:trUrl(a.link);
     return `
       <a class="card alert" href="${href}" target="_blank" rel="noopener" style="animation-delay:${i*.03}s">
         <div class="cm">
@@ -1471,7 +1479,7 @@ async function loadAINews(){
   aiLive=items;
   if(!items.length){list.innerHTML=emptyMsg('⛔ Flux IA injoignables — Je ne sais pas.');return;}
   list.innerHTML=items.map((a,i)=>{
-    const href=a.lang==='fr'?a.link:`https://translate.google.com/translate?sl=auto&tl=fr&u=${encodeURIComponent(a.link)}`;
+    const href=a.lang==='fr'?a.link:trUrl(a.link);
     return `
     <a class="card" href="${href}" target="_blank" rel="noopener" style="animation-delay:${i*.03}s;border-left:3px solid var(--purple)">
       <div class="cm"><span class="cs" style="color:var(--purple)">${a.source}</span><span class="cd"></span>

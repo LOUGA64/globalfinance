@@ -75,6 +75,57 @@ async function getPrev(file) {
   catch { return null; }
 }
 
+// ── 4 bis. Liens Google News → adresse réelle de l'article ──
+// Les liens news.google.com/rss/articles/… redirigent par JavaScript : le proxy Google Traduction
+// ne suit pas cette redirection et affiche une page blanche. On les résout ici côté serveur.
+const MAX_NEW_DECODES = 250;
+export function gnId(link) { const m = /news\.google\.[^/]+\/(?:rss\/)?(?:articles|read)\/([^?#/]+)/.exec(link || ''); return m ? m[1] : null; }
+export function gnDecodeOffline(id) {   // ancien format : l'adresse est en clair dans le base64
+  try {
+    const raw = Buffer.from(id.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('latin1');
+    const m = raw.match(/https?:\/\/[\x21-\x7e]+/);
+    if (m && !raw.includes('AU_yqL')) return m[0];
+  } catch {}
+  return null;
+}
+async function gnDecodeOnline(id) {
+  const page = await get(`https://news.google.com/rss/articles/${id}`, { tries: 1, headers: { Cookie: 'CONSENT=YES+cb' } });
+  const sg = (page.match(/data-n-a-sg="([^"]+)"/) || [])[1], ts = (page.match(/data-n-a-ts="([^"]+)"/) || [])[1];
+  if (!sg || !ts) throw new Error('signature absente');
+  const inner = JSON.stringify(['garturlreq', [['X', 'X', ['X', 'X'], null, null, 1, 1, 'US:en', null, 1, null, null, null, null, null, 0, 1], 'X', 'X', 1, [1, 1, 1], 1, 1, null, 0, 0, null, 0], id, Number(ts), sg]);
+  const body = 'f.req=' + encodeURIComponent(JSON.stringify([[['Fbv4je', inner, null, 'generic']]]));
+  const u = 'https://news.google.com/_/DotsSplashUi/data/batchexecute';
+  const r = await withHost(u, () => fetch(u, { method: 'POST', headers: { 'User-Agent': UA, 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8', Cookie: 'CONSENT=YES+cb' }, body, signal: AbortSignal.timeout(15000) }));
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const txt = await r.text();
+  const line = txt.split('\n').find(l => l.includes('garturlres'));
+  if (!line) throw new Error('réponse inattendue');
+  const url = JSON.parse(JSON.parse(line)[0][2])[1];
+  if (!/^https?:\/\//.test(url)) throw new Error('adresse invalide');
+  return url;
+}
+async function resolveGoogleNews(feeds, prevFeeds) {
+  const known = new Map();
+  for (const items of Object.values(prevFeeds?.feeds || {})) for (const a of items) if (a.gn && a.link && !gnId(a.link)) known.set(a.gn, a.link);
+  const todo = new Map(); let offline = 0, reused = 0;
+  for (const items of Object.values(feeds)) for (const a of items) {
+    const id = gnId(a.link); if (!id) continue;
+    const gn = a.link;
+    if (known.has(gn)) { a.gn = gn; a.link = known.get(gn); reused++; continue; }
+    const off = gnDecodeOffline(id);
+    if (off) { a.gn = gn; a.link = off; known.set(gn, off); offline++; continue; }
+    if (!todo.has(gn)) todo.set(gn, { id, items: [] });
+    todo.get(gn).items.push(a);
+  }
+  let ok = 0, fail = 0, lastErr = '';
+  const list = [...todo.entries()].slice(0, MAX_NEW_DECODES);
+  await Promise.all(list.map(async ([gn, { id, items }]) => {
+    try { const url = await gnDecodeOnline(id); for (const a of items) { a.gn = gn; a.link = url; } ok++; }
+    catch (e) { fail++; lastErr = String(e.message || e).slice(0, 80); }
+  }));
+  return { reused, offline, resolved: ok, failed: fail, pending: Math.max(0, todo.size - list.length), lastError: lastErr };
+}
+
 // ── 4. Traduction des titres (Google Translate gtx), avec réutilisation des traductions précédentes ──
 async function translateBatch(titles) {
   const text = titles.map(t => t.replace(/\n/g, ' ')).join('\n');
@@ -279,6 +330,10 @@ export async function main() {
     }
   }));
 
+  // Liens Google News → adresse réelle (sinon « Lire traduit » affiche une page blanche)
+  const gnStat = await resolveGoogleNews(feeds, prevFeeds);
+  console.log('Google News', JSON.stringify(gnStat));
+
   // Traductions (titres des flux non francophones)
   const prevTr = new Map();
   for (const items of Object.values(prevFeeds?.feeds || {})) for (const a of items) if (a.titleFr) prevTr.set(a.title, a.titleFr);
@@ -330,6 +385,7 @@ export async function main() {
   const meta = { generated, feedsTotal: cfg.feeds.length, feedsOk, feedsStale, yahooTotal: cfg.yahoo.length, yahooOk: yahooOk + googleOk + cnbcOk + boursoOk, yahooStale,
     boursoDiv: divStat,
     prices: { cnbc: cnbcOk, boursorama: boursoOk, cnbcHttp: cnbc.status, cnbcUnresolved: cnbc.unresolved, yahoo: yahooOk, google: googleOk, yahooSession: yahoo.session, yahooHttp: yahoo.status, googleHttp: gfin.status },
+    googleNewsLinks: gnStat,
     translated: trMap.size, translationsReused: prevTr.size, translationFailed: trFail,
     durationMs: Date.now() - t0, failures };
   await mkdir(new URL('data/', ROOT), { recursive: true });
