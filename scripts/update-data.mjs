@@ -78,7 +78,7 @@ async function getPrev(file) {
 // ── 4 bis. Liens Google News → adresse réelle de l'article ──
 // Les liens news.google.com/rss/articles/… redirigent par JavaScript : le proxy Google Traduction
 // ne suit pas cette redirection et affiche une page blanche. On les résout ici côté serveur.
-const MAX_NEW_DECODES = 250;
+const MAX_NEW_DECODES = 700;
 export function gnId(link) { const m = /news\.google\.[^/]+\/(?:rss\/)?(?:articles|read)\/([^?#/]+)/.exec(link || ''); return m ? m[1] : null; }
 export function gnDecodeOffline(id) {   // ancien format : l'adresse est en clair dans le base64
   try {
