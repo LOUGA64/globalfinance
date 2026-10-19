@@ -130,7 +130,7 @@ async function resolveGoogleNews(feeds, prevFeeds) {
 // ── 4 ter. Lecteur intégré : texte des articles étrangers extrait côté serveur ──
 // Google Traduction (translate.goog) affiche une page blanche sur beaucoup de sites (JavaScript, mur anti-bloqueur).
 // On extrait ici le texte de l'article ; la page le traduit et l'affiche elle-même. Sites payants : échec attendu.
-const MAX_NEW_ARTICLES = 220, MIN_CHARS = 600, MAX_CHARS = 15000;
+const MAX_NEW_ARTICLES = 600, MIN_CHARS = 600, MAX_CHARS = 15000;
 export function artId(link) { return createHash('sha1').update(link).digest('hex').slice(0, 14); }
 const decEnt = s => s.replace(/<[^>]+>/g, '').replace(/&nbsp;|&#160;/g, ' ').replace(/&amp;/g, '&').replace(/&quot;/g, '"')
   .replace(/&#39;|&#x27;|&apos;|&rsquo;|&lsquo;/g, "'").replace(/&ldquo;|&rdquo;/g, '"').replace(/&mdash;/g, '—').replace(/&ndash;/g, '–')
