@@ -193,7 +193,12 @@ async function buildArticles(feeds, cfg, outDir) {
       if (!paras) { idx[id] = 0; failed++; return; }
       await writeFile(new URL(id + '.json', outDir), JSON.stringify({ link: w.link, title: w.title, paras }));
       idx[id] = 1; for (const a of w.items) a.art = id; extracted++;
-    } catch (e) { idx[id] = 0; failed++; lastErr = String(e.message || e).slice(0, 60); }
+    } catch (e) {
+      // Délai dépassé / réseau : pas d'exclusion définitive, l'article sera retenté au passage suivant
+      const msg = String(e.message || e);
+      if (/^HTTP 4/.test(msg)) idx[id] = 0;
+      failed++; lastErr = msg.slice(0, 60);
+    }
   }));
   await writeFile(new URL('index.json', outDir), JSON.stringify({ generated: new Date().toISOString(), items: idx }));
   return { reused, extracted, failed, skippedKnownFail, pending: Math.max(0, fresh.length - MAX_NEW_ARTICLES), lastError: lastErr };
