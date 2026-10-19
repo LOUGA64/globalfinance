@@ -1,0 +1,217 @@
+[
+ {
+  "h": "nytimes.com",
+  "n": 36,
+  "status": 403,
+  "paras": 0,
+  "chars": 0,
+  "ld": 0,
+  "sample": ""
+ },
+ {
+  "h": "theguardian.com",
+  "n": 26,
+  "status": 200,
+  "paras": 27,
+  "chars": 5754,
+  "ld": 0,
+  "sample": "In the west the technology comes with at least some effort to provide security and a benig"
+ },
+ {
+  "h": "cnbc.com",
+  "n": 24,
+  "status": 200,
+  "paras": 35,
+  "chars": 8152,
+  "ld": 0,
+  "sample": "At the time of its Nasdaq debut in July, Bending Spoons was a little-known holding company"
+ },
+ {
+  "h": "economictimes.indiatimes.com",
+  "n": 18,
+  "status": 200,
+  "paras": 16,
+  "chars": 1405,
+  "ld": 3488,
+  "sample": "Trump’s tariff waiver brings Christmas cheer to Indian exporters, but diversification driv"
+ },
+ {
+  "h": "wired.com",
+  "n": 17,
+  "status": 200,
+  "paras": 57,
+  "chars": 21903,
+  "ld": 20040,
+  "sample": "The original version of this story appeared in Quanta Magazine."
+ },
+ {
+  "h": "washingtonpost.com",
+  "n": 14,
+  "status": 200,
+  "paras": 2,
+  "chars": 356,
+  "ld": 0,
+  "sample": "The debate over whether cover letters had become an outdated ritual was already in full sw"
+ },
+ {
+  "h": "arabnews.com",
+  "n": 13,
+  "status": 200,
+  "paras": 0,
+  "chars": 0,
+  "ld": 0,
+  "sample": ""
+ },
+ {
+  "h": "barrons.com",
+  "n": 10,
+  "status": 200,
+  "paras": 7,
+  "chars": 975,
+  "ld": 0,
+  "sample": "Copyright ©2026 Dow Jones & Company, Inc. All Rights Reserved. 87990cbe856818d5eddac44c7b1"
+ },
+ {
+  "h": "asia.nikkei.com",
+  "n": 10,
+  "status": 200,
+  "paras": 3,
+  "chars": 411,
+  "ld": 0,
+  "sample": "Downturn threatens new construction, government's housing goal"
+ },
+ {
+  "h": "technologyreview.com",
+  "n": 6,
+  "status": 200,
+  "paras": 7,
+  "chars": 1100,
+  "ld": 0,
+  "sample": "Can AI design new life forms? In 2025, Stanford University PhD student Samuel King came up"
+ },
+ {
+  "h": "economist.com",
+  "n": 6,
+  "status": 403,
+  "paras": 0,
+  "chars": 0,
+  "ld": 0,
+  "sample": ""
+ },
+ {
+  "h": "platform.openai.com",
+  "n": 6,
+  "status": 200,
+  "paras": 0,
+  "chars": 0,
+  "ld": 0,
+  "sample": ""
+ },
+ {
+  "h": "techcrunch.com",
+  "n": 3,
+  "status": 200,
+  "paras": 20,
+  "chars": 3579,
+  "ld": 0,
+  "sample": "Last day to save up to $200 to TechCrunch Founder Summit on Oct. 16. Register now."
+ },
+ {
+  "h": "caixinglobal.com",
+  "n": 3,
+  "status": 200,
+  "paras": 0,
+  "chars": 0,
+  "ld": 0,
+  "sample": ""
+ },
+ {
+  "h": "handelsblatt.com",
+  "n": 3,
+  "status": 200,
+  "paras": 7,
+  "chars": 1608,
+  "ld": 1596,
+  "sample": "Düsseldorf. Ein schwarzer Bugatti Divo mit Salzburger Kennzeichen rollt über die Autobahn."
+ },
+ {
+  "h": "venturebeat.com",
+  "n": 2,
+  "status": 429,
+  "paras": 0,
+  "chars": 0,
+  "ld": 0,
+  "sample": ""
+ },
+ {
+  "h": "expansion.com",
+  "n": 2,
+  "status": 200,
+  "paras": 15,
+  "chars": 3373,
+  "ld": 3170,
+  "sample": "Reci�n proclamado cabeza de lista del PSOE para el 29N, el presidente del Gobierno, Pedro "
+ },
+ {
+  "h": "finance.yahoo.com",
+  "n": 2,
+  "status": "ERR fetch failed",
+  "paras": 0,
+  "chars": 0,
+  "ld": 0
+ },
+ {
+  "h": "theverge.com",
+  "n": 1,
+  "status": 200,
+  "paras": 25,
+  "chars": 6725,
+  "ld": 5410,
+  "sample": "Posts from this topic will be added to your daily email digest and your homepage feed."
+ },
+ {
+  "h": "bbntimes.com",
+  "n": 1,
+  "status": 403,
+  "paras": 0,
+  "chars": 0,
+  "ld": 0,
+  "sample": ""
+ },
+ {
+  "h": "gov.br",
+  "n": 1,
+  "status": 200,
+  "paras": 4,
+  "chars": 635,
+  "ld": 0,
+  "sample": "O prazo para formalização da opção pelo Simples Nacional encerrou-se em 15 de outubro de 2"
+ },
+ {
+  "h": "sincroguia-tv.expansion.com",
+  "n": 1,
+  "status": 200,
+  "paras": 6,
+  "chars": 2341,
+  "ld": 0,
+  "sample": "Juan del Val ya ha cedido el testigo como ganador del Premio Planeta. Tras un año ostentan"
+ },
+ {
+  "h": "ilsole24ore.com",
+  "n": 1,
+  "status": 200,
+  "paras": 0,
+  "chars": 0,
+  "ld": 5864,
+  "sample": ""
+ },
+ {
+  "h": "koreaherald.com",
+  "n": 1,
+  "status": 200,
+  "paras": 0,
+  "chars": 0,
+  "ld": 0,
+  "sample": ""
+ }
+]
