@@ -4,6 +4,7 @@
 // Node 20+, aucune dépendance.
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import vm from 'node:vm';
+import { createHash } from 'node:crypto';
 
 const ROOT = new URL('..', import.meta.url);
 const PREV_BASE = process.env.PREV_BASE || 'https://louga64.github.io/globalfinance/data/';
@@ -46,7 +47,7 @@ export function parseRSS(xml) {
 
 // ── 3. Téléchargement avec limite de concurrence par hôte ──
 const hostQueues = new Map();
-const HOST_LIMIT = { 'www.boursorama.com': 3, 'news.google.com': 3, 'query1.finance.yahoo.com': 3, 'query2.finance.yahoo.com': 3, 'www.google.com': 3, 'www.sec.gov': 2 };
+const HOST_LIMIT = { 'www.boursorama.com': 3, 'news.google.com': 3, 'query1.finance.yahoo.com': 3, 'query2.finance.yahoo.com': 3, 'www.google.com': 3, 'www.sec.gov': 2, 'louga64.github.io': 12 };
 async function withHost(url, fn) {
   const h = new URL(url).hostname, lim = HOST_LIMIT[h] || 6;
   let q = hostQueues.get(h); if (!q) { q = { n: 0, w: [] }; hostQueues.set(h, q); }
@@ -124,6 +125,78 @@ async function resolveGoogleNews(feeds, prevFeeds) {
     catch (e) { fail++; lastErr = String(e.message || e).slice(0, 80); }
   }));
   return { reused, offline, resolved: ok, failed: fail, pending: Math.max(0, todo.size - list.length), lastError: lastErr };
+}
+
+// ── 4 ter. Lecteur intégré : texte des articles étrangers extrait côté serveur ──
+// Google Traduction (translate.goog) affiche une page blanche sur beaucoup de sites (JavaScript, mur anti-bloqueur).
+// On extrait ici le texte de l'article ; la page le traduit et l'affiche elle-même. Sites payants : échec attendu.
+const MAX_NEW_ARTICLES = 220, MIN_CHARS = 600, MAX_CHARS = 15000;
+export function artId(link) { return createHash('sha1').update(link).digest('hex').slice(0, 14); }
+const decEnt = s => s.replace(/<[^>]+>/g, '').replace(/&nbsp;|&#160;/g, ' ').replace(/&amp;/g, '&').replace(/&quot;/g, '"')
+  .replace(/&#39;|&#x27;|&apos;|&rsquo;|&lsquo;/g, "'").replace(/&ldquo;|&rdquo;/g, '"').replace(/&mdash;/g, '—').replace(/&ndash;/g, '–')
+  .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#(\d+);/g, (m, n) => String.fromCodePoint(+n)).replace(/&#x([0-9a-f]+);/gi, (m, n) => String.fromCodePoint(parseInt(n, 16)))
+  .replace(/\s+/g, ' ').trim();
+const JUNK = /cookie|newsletter|subscribe|sign up|inscri|abonn|all rights reserved|copyright|©|advertisement|read more:|related:|click here|javascript/i;
+export function extractArticle(html) {
+  const ldParas = [];
+  for (const m of html.matchAll(/<script[^>]*application\/ld\+json[^>]*>([\s\S]*?)<\/script>/gi)) {
+    try {
+      const j = JSON.parse(m[1].trim());
+      for (const x of [].concat(j?.['@graph'] || j)) if (x && typeof x.articleBody === 'string' && x.articleBody.length > ldParas.join(' ').length) {
+        ldParas.length = 0; ldParas.push(...decEnt(x.articleBody.replace(/\r?\n+/g, '\u0001')).split('\u0001').map(t => t.trim()).filter(t => t.length > 30));
+      }
+    } catch {}
+  }
+  const clean = html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<noscript[\s\S]*?<\/noscript>|<(?:aside|nav|footer|figure|form)[\s\S]*?<\/(?:aside|nav|footer|figure|form)>/gi, '');
+  const art = (clean.match(/<article[\s\S]*?<\/article>/gi) || []).sort((a, b) => b.length - a.length)[0];
+  const pick = src => [...src.matchAll(/<p[\s>][\s\S]*?<\/p>/gi)].map(m => decEnt(m[0])).filter(t => t.length > 50 && !JUNK.test(t));
+  let paras = art ? pick(art) : [];
+  if (paras.join(' ').length < MIN_CHARS) paras = pick(clean);
+  if (ldParas.join(' ').length > paras.join(' ').length) paras = ldParas.filter(t => !JUNK.test(t));
+  paras = [...new Set(paras)];
+  const out = []; let n = 0;
+  for (const t of paras) { if (n + t.length > MAX_CHARS) break; out.push(t); n += t.length; }
+  return n >= MIN_CHARS && out.length >= 2 ? out : null;
+}
+async function getHtml(url) {
+  const r = await withHost(url, () => fetch(url, { headers: { 'User-Agent': UA, Accept: 'text/html,*/*', 'Accept-Language': 'en,fr;q=0.8' }, redirect: 'follow', signal: AbortSignal.timeout(15000) }));
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const buf = Buffer.from(await r.arrayBuffer());
+  let cs = (/charset=([\w-]+)/i.exec(r.headers.get('content-type') || '') || [])[1];
+  if (!cs) cs = (/<meta[^>]+charset=["']?([\w-]+)/i.exec(buf.toString('latin1').slice(0, 4000)) || [])[1];
+  try { return new TextDecoder(cs || 'utf-8').decode(buf); } catch { return buf.toString('utf8'); }
+}
+async function buildArticles(feeds, cfg, outDir) {
+  const prevIdx = (await getPrev('art/index.json'))?.items || {};
+  const idx = {}; const wanted = new Map();
+  for (const f of cfg.feeds) {
+    if (f.lang === 'fr' || !feeds[f.url]) continue;
+    for (const a of feeds[f.url]) {
+      if (!a.link || gnId(a.link) || !/^https?:/.test(a.link)) continue;
+      const id = artId(a.link); a.art = null;
+      if (!wanted.has(id)) wanted.set(id, { link: a.link, title: a.title, items: [] });
+      wanted.get(id).items.push(a);
+    }
+  }
+  let reused = 0, extracted = 0, failed = 0, skippedKnownFail = 0, lastErr = ''; const fresh = [];
+  await Promise.all([...wanted].map(async ([id, w]) => {
+    if (prevIdx[id] === 0) { idx[id] = 0; skippedKnownFail++; return; }
+    if (prevIdx[id] === 1) {
+      const old = await withHost(PREV_BASE, () => getPrev('art/' + id + '.json'));
+      if (old?.paras?.length) { await writeFile(new URL(id + '.json', outDir), JSON.stringify(old)); idx[id] = 1; for (const a of w.items) a.art = id; reused++; return; }
+    }
+    fresh.push([id, w]);
+  }));
+  await Promise.all(fresh.slice(0, MAX_NEW_ARTICLES).map(async ([id, w]) => {
+    try {
+      const paras = extractArticle(await getHtml(w.link));
+      if (!paras) { idx[id] = 0; failed++; return; }
+      await writeFile(new URL(id + '.json', outDir), JSON.stringify({ link: w.link, title: w.title, paras }));
+      idx[id] = 1; for (const a of w.items) a.art = id; extracted++;
+    } catch (e) { idx[id] = 0; failed++; lastErr = String(e.message || e).slice(0, 60); }
+  }));
+  await writeFile(new URL('index.json', outDir), JSON.stringify({ generated: new Date().toISOString(), items: idx }));
+  return { reused, extracted, failed, skippedKnownFail, pending: Math.max(0, fresh.length - MAX_NEW_ARTICLES), lastError: lastErr };
 }
 
 // ── 4. Traduction des titres (Google Translate gtx), avec réutilisation des traductions précédentes ──
@@ -381,11 +454,17 @@ export async function main() {
   const prevDiv = await getPrev('divinfo.json');
   const refPrices = new Map([...cnbcMap].map(([t, c]) => [t, c.chart.result[0].meta.regularMarketPrice]));
   const { res: divinfo, stat: divStat } = await fetchBoursoDivs(allT, prevDiv?.items, refPrices);
+  // Lecteur intégré (texte des articles étrangers)
+  await mkdir(new URL('data/art/', ROOT), { recursive: true });
+  let artStat;
+  try { artStat = await buildArticles(feeds, cfg, new URL('data/art/', ROOT)); } catch (e) { artStat = { error: String(e.message || e).slice(0, 120) }; }
+  console.log('Articles', JSON.stringify(artStat));
   const generated = new Date().toISOString();
   const meta = { generated, feedsTotal: cfg.feeds.length, feedsOk, feedsStale, yahooTotal: cfg.yahoo.length, yahooOk: yahooOk + googleOk + cnbcOk + boursoOk, yahooStale,
     boursoDiv: divStat,
     prices: { cnbc: cnbcOk, boursorama: boursoOk, cnbcHttp: cnbc.status, cnbcUnresolved: cnbc.unresolved, yahoo: yahooOk, google: googleOk, yahooSession: yahoo.session, yahooHttp: yahoo.status, googleHttp: gfin.status },
     googleNewsLinks: gnStat,
+    articles: artStat,
     translated: trMap.size, translationsReused: prevTr.size, translationFailed: trFail,
     durationMs: Date.now() - t0, failures };
   await mkdir(new URL('data/', ROOT), { recursive: true });
