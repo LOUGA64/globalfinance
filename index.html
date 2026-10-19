@@ -1288,7 +1288,7 @@ function renderNews(){
              </span>`:''}
             <span role="link" tabindex="0" data-href="${escAttr(href)}" onclick="openLink(event,this)"
                style="cursor:pointer;font-size:10px;padding:3px 7px;border-radius:3px;border:1px solid ${isFr?'var(--accent)':'#4285f4'};color:${isFr?'var(--accent)':'#4285f4'};background:${isFr?'transparent':'rgba(66,133,244,.08)'};white-space:nowrap;font-weight:600">
-              ${isFr?'Lire →':'🇫🇷 Lire traduit'}
+              ${isFr?'Lire →':(proxyOk(a.link)?'🇫🇷 Lire traduit':'Lire l’original')}
             </span>
           </span>`:''}
       </div>
@@ -1351,9 +1351,16 @@ async function loadReg(){
 
 // Lien « Lire traduit » : un lien news.google.com non résolu ne passe pas par le proxy
 // Google Traduction (redirection JavaScript → page blanche) ; on l'ouvre alors directement.
+// Sites qui refusent d'être affichés dans Google Traduction (mur anti-bloqueur / JavaScript) :
+// on ouvre l'original, à traduire avec la traduction intégrée de Safari. Liste à compléter au fil des constats.
+const NO_PROXY=['elpais.com'];
+function proxyOk(link){
+  if(!link||/news\.google\./.test(link))return false;
+  try{const h=new URL(link).hostname.replace(/^www\./,'');return !NO_PROXY.some(d=>h===d||h.endsWith('.'+d));}catch(e){return false;}
+}
 function trUrl(link){
   if(!link||link==='#')return 'javascript:void(0)';
-  if(/news\.google\./.test(link))return link;
+  if(!proxyOk(link))return link;
   return `https://translate.google.com/translate?sl=auto&tl=fr&u=${encodeURIComponent(link)}`;
 }
 
