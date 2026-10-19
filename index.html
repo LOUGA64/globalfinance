@@ -1294,13 +1294,13 @@ function renderNews(){
         ${a.translated?'<span class="tag" style="font-size:9px;color:var(--purple);border-color:var(--purple);background:var(--purple-bg)">✨ traduit</span>':''}
         ${a.link&&a.link!='#'?`
           <span style="margin-left:auto;display:flex;gap:6px;align-items:center">
-            ${!isFr?`<span role="link" tabindex="0" data-href="${escAttr(a.link)}" onclick="openLink(event,this)"
+            ${(!isFr&&a.art)?`<span role="link" tabindex="0" data-href="${escAttr(a.link)}" onclick="openLink(event,this)"
                style="cursor:pointer;font-size:10px;padding:3px 7px;border-radius:3px;border:1px solid var(--border2);color:var(--muted);white-space:nowrap">
                🌐 Original
              </span>`:''}
             <span role="link" tabindex="0" data-href="${escAttr(href)}" ${(!isFr&&a.art)?`data-art="${a.art}" data-orig="${escAttr(a.link)}" onclick="openReader(event,this)"`:'onclick="openLink(event,this)"'}
                style="cursor:pointer;font-size:10px;padding:3px 7px;border-radius:3px;border:1px solid ${isFr?'var(--accent)':'#4285f4'};color:${isFr?'var(--accent)':'#4285f4'};background:${isFr?'transparent':'rgba(66,133,244,.08)'};white-space:nowrap;font-weight:600">
-              ${isFr?'Lire →':((a.art||proxyOk(a.link))?'🇫🇷 Lire traduit':'Lire l’original')}
+              ${isFr?'Lire →':(a.art?'🇫🇷 Lire traduit':'Lire l’original (VO)')}
             </span>
           </span>`:''}
       </div>
@@ -1370,10 +1370,11 @@ function proxyOk(link){
   if(!link||/news\.google\./.test(link))return false;
   try{const h=new URL(link).hostname.replace(/^www\./,'');return !NO_PROXY.some(d=>h===d||h.endsWith('.'+d));}catch(e){return false;}
 }
+// Google Traduction (translate.goog) échoue sur la plupart des sites d'actualité (page blanche,
+// « Can't translate this page ») : abandonné le 19/10/2026. Sans texte extrait, on ouvre l'original.
 function trUrl(link){
   if(!link||link==='#')return 'javascript:void(0)';
-  if(!proxyOk(link))return link;
-  return `https://translate.google.com/translate?sl=auto&tl=fr&u=${encodeURIComponent(link)}`;
+  return link;
 }
 
 // ── Lecteur intégré : texte extrait côté serveur (data/art/<id>.json), traduit ici en français ──
@@ -1389,8 +1390,8 @@ let readerSeq=0;
 async function openReader(e,el){
   e.preventDefault();e.stopPropagation();
   const id=el.dataset.art, link=el.dataset.orig, seq=++readerSeq;
-  const card=el.closest('.card'); const title=card?.querySelector('.ctitle')?.textContent||'';
-  const src=card?.querySelector('.cs')?.textContent||'';
+  const card=el.closest('.card'); const title=el.dataset.title||card?.querySelector('.ctitle')?.textContent||'';
+  const src=el.dataset.src||card?.querySelector('.cs')?.textContent||'';
   let host='';try{host=new URL(link).hostname.replace(/^www\./,'');}catch(_){}
   const box=document.getElementById('reader'), body=document.getElementById('readerBody');
   document.getElementById('readerTitle').textContent=title;
@@ -1450,7 +1451,7 @@ function renderReg(amf, sec){
         <span style="margin-left:auto">
           ${isSEC?`<span style="font-size:10px;padding:3px 7px;border-radius:3px;border:1px solid var(--border2);color:var(--muted)">🔒 Direct SEC</span>`:''}
           ${isAMF?`<span style="font-size:10px;padding:3px 7px;border-radius:3px;border:1px solid #002395;color:#002395">🇫🇷 AMF</span>`:''}
-          ${(!isSEC&&!isAMF)?`<span style="font-size:10px;padding:3px 7px;border-radius:3px;border:1px solid #4285f4;color:#4285f4;background:rgba(66,133,244,.08);font-weight:600">🇫🇷 Lire traduit</span>`:''}
+          ${(!isSEC&&!isAMF)?`<span style="font-size:10px;padding:3px 7px;border-radius:3px;border:1px solid #4285f4;color:#4285f4;background:rgba(66,133,244,.08);font-weight:600">Lire (VO)</span>`:''}
         </span>
       </div>
     </a>`;
@@ -1488,7 +1489,7 @@ async function loadOPA(){
   document.getElementById('opaList').innerHTML=opaLive.map((a,i)=>{
     const href=a.lang==='fr'?a.link:trUrl(a.link);
     return `
-      <a class="card alert" href="${href}" target="_blank" rel="noopener" style="animation-delay:${i*.03}s">
+      <a class="card alert" href="${href}" target="_blank" ${(a.lang!=='fr'&&a.art)?`data-art="${a.art}" data-orig="${escAttr(a.link)}" data-title="${escAttr(a.title)}" data-src="${escAttr(a.source||'')}" onclick="openReader(event,this)"`:''} rel="noopener" style="animation-delay:${i*.03}s">
         <div class="cm">
           <span class="cs red">${a.source}</span><span class="cd"></span>
           <span class="ct">${formatPubDate(a.pubDate)}</span><span>${FLAGS[a.country]||'🌍'}</span>
@@ -1553,7 +1554,7 @@ async function loadAINews(){
   list.innerHTML=items.map((a,i)=>{
     const href=a.lang==='fr'?a.link:trUrl(a.link);
     return `
-    <a class="card" href="${href}" target="_blank" rel="noopener" style="animation-delay:${i*.03}s;border-left:3px solid var(--purple)">
+    <a class="card" href="${href}" target="_blank" ${(a.lang!=='fr'&&a.art)?`data-art="${a.art}" data-orig="${escAttr(a.link)}" data-title="${escAttr(a.title)}" data-src="${escAttr(a.source||'')}" onclick="openReader(event,this)"`:''} rel="noopener" style="animation-delay:${i*.03}s;border-left:3px solid var(--purple)">
       <div class="cm"><span class="cs" style="color:var(--purple)">${a.source}</span><span class="cd"></span>
         <span class="ct">${formatPubDate(a.pubDate)}</span><span>🤖</span></div>
       <div class="ctitle">${a.title}</div>
