@@ -53,7 +53,7 @@ async function withHost(url, fn) {
   let q = hostQueues.get(h); if (!q) { q = { n: 0, w: [] }; hostQueues.set(h, q); }
   if (q.n >= lim) await new Promise(r => q.w.push(r));
   q.n++;
-  try { return await fn(); } finally { q.n--; const nx = q.w.shift(); if (nx) setTimeout(nx, h === 'news.google.com' ? 250 : 0); }
+  try { return await fn(); } finally { q.n--; const nx = q.w.shift(); if (nx) setTimeout(nx, h === 'news.google.com' ? 250 : (h === 'clients5.google.com' || h === 'translate.googleapis.com') ? 400 : 0); }
 }
 // La SEC exige un User-Agent déclaré (nom d'application + contact), sinon 403
 const SEC_UA = 'GlobalFinance personal dashboard github.com/LOUGA64/globalfinance';
