@@ -1398,12 +1398,19 @@ async function openReader(e,el){
   document.getElementById('readerMeta').textContent=[src,host].filter(Boolean).join(' · ');
   document.getElementById('readerOrig').dataset.href=link;
   body.innerHTML='<p class="rd-wait">Chargement de l’article…</p>';
+  document.getElementById('readerNote').textContent='';
   box.classList.add('open');document.body.style.overflow='hidden';box.scrollTop=0;
   try{history.pushState({reader:1},'');}catch(_){}
   let art=null;
   try{const r=await fetch(`data/art/${id}.json`,{signal:AbortSignal.timeout(10000)});if(r.ok)art=await r.json();}catch(_){}
   if(seq!==readerSeq)return;
   if(!art?.paras?.length){body.innerHTML='<p class="rd-wait">Texte indisponible. Touchez « Ouvrir l’original » ci-dessous.</p>';return;}
+  if(art.titleFr)document.getElementById('readerTitle').textContent=art.titleFr;
+  if(Array.isArray(art.parasFr)&&art.parasFr.length===art.paras.length){
+    body.innerHTML=art.parasFr.map(t=>`<p>${escHtml(t)}</p>`).join('');
+    document.getElementById('readerNote').textContent='Traduction automatique Google — peut contenir des erreurs.';
+    return;
+  }
   body.innerHTML=art.paras.map((t,i)=>`<p data-i="${i}" class="rd-orig">${escHtml(t)}</p>`).join('');
   document.getElementById('readerNote').textContent='Traduction en cours…';
   // Lots d'environ 1 500 caractères, paragraphes séparés par une ligne vide

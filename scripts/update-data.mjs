@@ -47,7 +47,7 @@ export function parseRSS(xml) {
 
 // ── 3. Téléchargement avec limite de concurrence par hôte ──
 const hostQueues = new Map();
-const HOST_LIMIT = { 'www.boursorama.com': 3, 'news.google.com': 3, 'query1.finance.yahoo.com': 3, 'query2.finance.yahoo.com': 3, 'www.google.com': 3, 'www.sec.gov': 2, 'louga64.github.io': 12 };
+const HOST_LIMIT = { 'www.boursorama.com': 3, 'news.google.com': 3, 'query1.finance.yahoo.com': 3, 'query2.finance.yahoo.com': 3, 'www.google.com': 3, 'www.sec.gov': 2, 'louga64.github.io': 12, 'translate.googleapis.com': 3 };
 async function withHost(url, fn) {
   const h = new URL(url).hostname, lim = HOST_LIMIT[h] || 6;
   let q = hostQueues.get(h); if (!q) { q = { n: 0, w: [] }; hostQueues.set(h, q); }
@@ -166,6 +166,24 @@ async function getHtml(url) {
   if (!cs) cs = (/<meta[^>]+charset=["']?([\w-]+)/i.exec(buf.toString('latin1').slice(0, 4000)) || [])[1];
   try { return new TextDecoder(cs || 'utf-8').decode(buf); } catch { return buf.toString('utf8'); }
 }
+// Traduction du texte des articles côté serveur (la traduction depuis l'iPhone échoue)
+const MAX_TR_ARTICLES = 150;
+let trBlocked = false;
+async function translateParas(paras) {
+  const groups = []; let cur = [], len = 0;
+  for (const t of paras) { if (len + t.length > 1800 && cur.length) { groups.push(cur); cur = []; len = 0; } cur.push(t); len += t.length + 1; }
+  if (cur.length) groups.push(cur);
+  const out = [];
+  for (const g of groups) {
+    if (trBlocked) throw new Error('traduction suspendue');
+    try { out.push(...await translateBatch(g)); }
+    catch (e) {
+      if (/HTTP 429|HTTP 403/.test(String(e.message))) { trBlocked = true; throw e; }
+      for (const t of g) out.push((await translateBatch([t]))[0]);   // repli paragraphe par paragraphe
+    }
+  }
+  return out;
+}
 async function buildArticles(feeds, cfg, outDir) {
   const prevIdx = (await getPrev('art/index.json'))?.items || {};
   const idx = {}; const wanted = new Map();
@@ -178,12 +196,12 @@ async function buildArticles(feeds, cfg, outDir) {
       wanted.get(id).items.push(a);
     }
   }
-  let reused = 0, extracted = 0, failed = 0, skippedKnownFail = 0, lastErr = ''; const fresh = [];
+  let reused = 0, extracted = 0, failed = 0, skippedKnownFail = 0, lastErr = ''; const fresh = []; const docs = new Map();
   await Promise.all([...wanted].map(async ([id, w]) => {
     if (prevIdx[id] === 0) { idx[id] = 0; skippedKnownFail++; return; }
     if (prevIdx[id] === 1) {
       const old = await withHost(PREV_BASE, () => getPrev('art/' + id + '.json'));
-      if (old?.paras?.length) { await writeFile(new URL(id + '.json', outDir), JSON.stringify(old)); idx[id] = 1; for (const a of w.items) a.art = id; reused++; return; }
+      if (old?.paras?.length) { docs.set(id, { doc: old, w }); idx[id] = 1; for (const a of w.items) a.art = id; reused++; return; }
     }
     fresh.push([id, w]);
   }));
@@ -191,7 +209,7 @@ async function buildArticles(feeds, cfg, outDir) {
     try {
       const paras = extractArticle(await getHtml(w.link));
       if (!paras) { idx[id] = 0; failed++; return; }
-      await writeFile(new URL(id + '.json', outDir), JSON.stringify({ link: w.link, title: w.title, paras }));
+      docs.set(id, { doc: { link: w.link, title: w.title, paras }, w });
       idx[id] = 1; for (const a of w.items) a.art = id; extracted++;
     } catch (e) {
       // Délai dépassé / réseau : pas d'exclusion définitive, l'article sera retenté au passage suivant
@@ -200,8 +218,28 @@ async function buildArticles(feeds, cfg, outDir) {
       failed++; lastErr = msg.slice(0, 60);
     }
   }));
+  // Traduction : les plus récents d'abord, MAX_TR_ARTICLES par passage
+  const todo = [...docs.values()].filter(x => !x.doc.parasFr)
+    .sort((a, b) => (Date.parse(b.w.items[0]?.pubDate) || 0) - (Date.parse(a.w.items[0]?.pubDate) || 0)).slice(0, MAX_TR_ARTICLES);
+  let translated = 0, trFailed = 0, trErr = '';
+  for (let i = 0; i < todo.length; i += 3) {
+    await Promise.all(todo.slice(i, i + 3).map(async ({ doc, w }) => {
+      try {
+        const fr = await translateParas(doc.paras);
+        if (fr.length === doc.paras.length && fr.every(Boolean)) {
+          doc.parasFr = fr;
+          if (!doc.titleFr) doc.titleFr = w.items.find(a => a.titleFr)?.titleFr || (await translateBatch([doc.title]))[0];
+          translated++;
+        } else trFailed++;
+      } catch (e) { trFailed++; trErr = String(e.message || e).slice(0, 60); }
+    }));
+    if (trBlocked) break;
+  }
+  for (const [id, { doc }] of docs) await writeFile(new URL(id + '.json', outDir), JSON.stringify(doc));
+  const withFr = [...docs.values()].filter(x => x.doc.parasFr).length;
   await writeFile(new URL('index.json', outDir), JSON.stringify({ generated: new Date().toISOString(), items: idx }));
-  return { reused, extracted, failed, skippedKnownFail, pending: Math.max(0, fresh.length - MAX_NEW_ARTICLES), lastError: lastErr };
+  return { reused, extracted, failed, skippedKnownFail, pending: Math.max(0, fresh.length - MAX_NEW_ARTICLES), lastError: lastErr,
+    translated, translatedTotal: withFr, notYetTranslated: docs.size - withFr, trFailed, trBlocked, trError: trErr };
 }
 
 // ── 4. Traduction des titres (Google Translate gtx), avec réutilisation des traductions précédentes ──
