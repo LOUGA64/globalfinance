@@ -1300,7 +1300,7 @@ function renderNews(){
              </span>`:''}
             <span role="link" tabindex="0" data-href="${escAttr(href)}" ${(!isFr&&a.art)?`data-art="${a.art}" data-orig="${escAttr(a.link)}" onclick="openReader(event,this)"`:'onclick="openLink(event,this)"'}
                style="cursor:pointer;font-size:10px;padding:3px 7px;border-radius:3px;border:1px solid ${isFr?'var(--accent)':'#4285f4'};color:${isFr?'var(--accent)':'#4285f4'};background:${isFr?'transparent':'rgba(66,133,244,.08)'};white-space:nowrap;font-weight:600">
-              ${isFr?'Lire →':(a.art?'🇫🇷 Lire traduit':'Lire l’original (VO)')}
+              ${isFr?'Lire →':(a.art?'🇫🇷 Lire traduit':'VO · non traduisible')}
             </span>
           </span>`:''}
       </div>
