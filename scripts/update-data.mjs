@@ -47,7 +47,7 @@ export function parseRSS(xml) {
 
 // ── 3. Téléchargement avec limite de concurrence par hôte ──
 const hostQueues = new Map();
-const HOST_LIMIT = { 'www.boursorama.com': 3, 'news.google.com': 3, 'query1.finance.yahoo.com': 3, 'query2.finance.yahoo.com': 3, 'www.google.com': 3, 'www.sec.gov': 2, 'louga64.github.io': 12, 'translate.googleapis.com': 3 };
+const HOST_LIMIT = { 'www.boursorama.com': 3, 'news.google.com': 3, 'query1.finance.yahoo.com': 3, 'query2.finance.yahoo.com': 3, 'www.google.com': 3, 'www.sec.gov': 2, 'louga64.github.io': 12, 'translate.googleapis.com': 3, 'clients5.google.com': 3 };
 async function withHost(url, fn) {
   const h = new URL(url).hostname, lim = HOST_LIMIT[h] || 6;
   let q = hostQueues.get(h); if (!q) { q = { n: 0, w: [] }; hostQueues.set(h, q); }
@@ -244,12 +244,22 @@ async function buildArticles(feeds, cfg, outDir) {
 
 // ── 4. Traduction des titres (Google Translate gtx), avec réutilisation des traductions précédentes ──
 async function translateBatch(titles) {
-  const text = titles.map(t => t.replace(/\n/g, ' ')).join('\n');
-  const url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=fr&dt=t&q=' + encodeURIComponent(text);
-  const data = JSON.parse(await get(url, { tries: 2, timeout: 12000 }));
-  const out = (data?.[0] || []).map(x => x?.[0] || '').join('').split('\n').map(s => s.trim());
-  if (out.length !== titles.length) throw new Error(`lignes ${out.length}/${titles.length}`);
-  return out;
+  const lines = titles.map(t => t.replace(/\n/g, ' '));
+  // 1) Google « dict-chrome-ex » : un paramètre q par ligne, correspondance exacte ligne à ligne
+  try {
+    const url = 'https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=auto&tl=fr&' + lines.map(t => 'q=' + encodeURIComponent(t)).join('&');
+    const data = JSON.parse(await get(url, { tries: 2, timeout: 12000 }));
+    const out = (Array.isArray(data) ? data : []).map(x => (Array.isArray(x) ? x[0] : x) || '').map(s => String(s).trim());
+    if (out.length === lines.length && out.every(Boolean)) return out;
+    throw new Error(`lignes ${out.length}/${lines.length}`);
+  } catch (e1) {
+    // 2) Repli : Google « gtx »
+    const url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=fr&dt=t&q=' + encodeURIComponent(lines.join('\n'));
+    const data = JSON.parse(await get(url, { tries: 1, timeout: 12000 }));
+    const out = (data?.[0] || []).map(x => x?.[0] || '').join('').split('\n').map(s => s.trim());
+    if (out.length !== lines.length) throw new Error(`lignes ${out.length}/${lines.length} (${e1.message})`);
+    return out;
+  }
 }
 
 // ── 5. Allègement des réponses Yahoo (on ne garde que ce que la page utilise) ──
